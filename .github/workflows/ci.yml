@@ -1,0 +1,198 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.13'
+      
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+        with:
+          version: 1.7.1
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+      
+      - name: Install dependencies
+        run: |
+          poetry install --with dev
+      
+      - name: Lint with flake8
+        run: |
+          poetry run flake8 app tests
+      
+      - name: Format check with black
+        run: |
+          poetry run black --check app tests
+  
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.13'
+      
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+        with:
+          version: 1.7.1
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+      
+      - name: Install dependencies
+        run: |
+          poetry install
+      
+      - name: Run unit tests
+        run: |
+          poetry run pytest tests/unit -v --cov=app --cov-report=xml:coverage-unit.xml
+      
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v3
+        with:
+          name: coverage-unit
+          path: coverage-unit.xml
+  
+  api-tests:
+    name: API Tests
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.13'
+      
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+        with:
+          version: 1.7.1
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+      
+      - name: Install dependencies
+        run: |
+          poetry install
+      
+      - name: Run API tests
+        run: |
+          poetry run pytest tests/api -v --cov=app --cov-report=xml:coverage-api.xml
+      
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v3
+        with:
+          name: coverage-api
+          path: coverage-api.xml
+  
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    needs: [unit-tests, api-tests]
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: geolocation_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.13'
+      
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+        with:
+          version: 1.7.1
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+      
+      - name: Install dependencies
+        run: |
+          poetry install
+      
+      - name: Run integration tests
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/geolocation_test
+          REDIS_URL: redis://localhost:6379/0
+          IPSTACK_API_KEY: ${{ secrets.IPSTACK_API_KEY }}
+        run: |
+          poetry run pytest tests/integration -v --cov=app --cov-report=xml:coverage-integration.xml
+      
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v3
+        with:
+          name: coverage-integration
+          path: coverage-integration.xml
+  
+  coverage-report:
+    name: Combine Coverage Reports
+    runs-on: ubuntu-latest
+    needs: [unit-tests, api-tests, integration-tests]
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.13'
+      
+      - name: Install coverage
+        run: pip install coverage
+      
+      - name: Download coverage reports
+        uses: actions/download-artifact@v3
+        with:
+          path: coverage-reports
+      
+      - name: Combine coverage reports
+        run: |
+          coverage combine coverage-reports/coverage-*/coverage-*.xml
+          coverage report
+          coverage xml
+      
+      - name: Upload combined coverage report
+        uses: codecov/codecov-action@v3
+        with:
+          file: coverage.xml
+          fail_ci_if_error: false 

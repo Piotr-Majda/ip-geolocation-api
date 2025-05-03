@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  api-test:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      - db-test
+      - redis-test
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@db-test:5432/geolocation_test
+      - REDIS_URL=redis://redis-test:6379/0
+      - IPSTACK_API_KEY=${IPSTACK_API_KEY}
+    volumes:
+      - ./app:/app/app
+      - ./tests:/app/tests
+      - ./pytest.ini:/app/pytest.ini
+    # Run only API and integration tests
+    command: >
+      bash -c "
+        sleep 5 &&
+        poetry install --with dev --no-interaction --no-root &&
+        poetry run pytest tests/api tests/integration -v
+      "
+
+  db-test:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=geolocation_test
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis-test:
+    image: redis:7-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5 
