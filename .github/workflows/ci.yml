@@ -36,6 +36,10 @@ jobs:
       - name: Format check with black
         run: |
           poetry run black --check app tests
+
+      - name: Check type hints with mypy
+        run: |
+          poetry run mypy app tests
   
   unit-tests:
     name: Unit Tests
@@ -65,7 +69,7 @@ jobs:
           poetry run pytest tests/unit -v --cov=app --cov-report=xml:coverage-unit.xml
       
       - name: Upload coverage report
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: coverage-unit
           path: coverage-unit.xml
@@ -98,7 +102,7 @@ jobs:
           poetry run pytest tests/api -v --cov=app --cov-report=xml:coverage-api.xml
       
       - name: Upload coverage report
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: coverage-api
           path: coverage-api.xml
@@ -160,7 +164,7 @@ jobs:
           poetry run pytest tests/integration -v --cov=app --cov-report=xml:coverage-integration.xml
       
       - name: Upload coverage report
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: coverage-integration
           path: coverage-integration.xml
@@ -181,7 +185,7 @@ jobs:
         run: pip install coverage
       
       - name: Download coverage reports
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           path: coverage-reports
       
