@@ -73,7 +73,7 @@ Follow these guidelines when writing tests:
 
 # Test Structure for IP Geolocation API
 
-This directory contains test files organized to match the application structure, following TDD and BDD principles.
+This directory contains test files organized to match the application structure, following TDD principles.
 
 ## Directory Structure
 
@@ -82,45 +82,28 @@ tests/
 ├── unit/                       # Unit tests for individual components
 │   ├── domain/                 # Tests for domain entities and logic
 │   │   ├── models/             # Tests for domain model classes
-│   │   │   ├── test_ip.py
-│   │   │   ├── test_geolocation.py
 │   │   ├── repositories/       # Tests for repository interfaces
-│   │   │   ├── test_geolocation_repository.py
 │   │   ├── services/           # Tests for domain services
-│   │   │   ├── test_geolocation_service.py
-│   │   ├── application/            # Tests for application use cases
-│   │   │   ├── use_cases/
-│   │   │   │   ├── test_get_geolocation.py
-│   │   │   │   ├── test_add_geolocation.py
-│   │   │   │   ├── test_delete_geolocation.py
-│   │   ├── infrastructure/         # Tests for infrastructure implementations
-│   │   │   ├── database/
-│   │   │   │   ├── test_models.py
-│   │   │   │   ├── repositories/
-│   │   │   │       ├── test_sqlalchemy_geolocation_repository.py
-│   │   │   ├── external/
-│   │   │   │   ├── test_ipstack_client.py
-│   │   │   ├── cache/
-│   │   │   │   ├── test_redis_cache.py
-│   │   ├── interfaces/             # Tests for API routes and controllers
-│   │   │   ├── api/
-│   │   │   │   ├── routes/
-│   │   │   │   │   ├── test_geolocation_routes.py
-│   │   │   │   │   ├── test_health_routes.py
-│   │   ├── conftest.py             # Global pytest fixtures
+│   ├── application/            # Tests for application use cases
+│   │   ├── use_cases/
+│   ├── infrastructure/         # Tests for infrastructure implementations
+│   │   ├── database/
+│   │   │   ├── repositories/
+│   │   ├── external/
+│   │   ├── cache/
+│   ├── interfaces/             # Tests for API routes and controllers
+│   │   ├── api/
+│   │   │   ├── routes/
+│   ├── conftest.py             # Unit test fixtures
+│   ├── README.md               # Guidance for unit tests
 ├── integration/                # Integration tests between components
-│   ├── test_repository_db.py   # Tests repositories with actual DB
-│   ├── test_api_external.py    # Tests external API integrations
 │   ├── conftest.py             # Integration test fixtures
+│   ├── README.md               # Guidance for integration tests
 ├── api/                        # API tests (HTTP requests)
-│   ├── test_geolocation_api.py # Tests complete API endpoints
-│   ├── conftest.py             # API test fixtures
-├── features/                   # BDD feature specifications
-│   ├── geolocation.feature     # Gherkin feature file
-│   ├── steps/                  # Step definitions for BDD tests
-│   │   ├── test_geolocation_steps.py
-├── performance/                # Performance and load tests
-│   ├── test_api_performance.py # Simple load tests
+│   ├── test_health.py          # Tests for health endpoints
+│   ├── README.md               # Guidance for API tests
+├── conftest.py                 # Global pytest fixtures
+├── README.md                   # Main test documentation
 ```
 
 ## Test Types
@@ -202,59 +185,6 @@ def test_get_geolocation_for_valid_ip(api_base_url):
     assert response.status_code == 200
     data = response.json()["data"]
     assert data["ip"] == "8.8.8.8"
-    assert "country_name" in data
-    assert "city" in data
-```
-
-### BDD Tests
-
-BDD tests connect Gherkin feature files with implementation.
-
-Example feature file:
-```gherkin
-# tests/features/geolocation.feature
-Feature: IP Geolocation API
-  As an API user
-  I want to get geolocation data for IP addresses
-  So that I can display location information to my users
-
-  Scenario: Get geolocation for a valid IP address
-    Given the API is running
-    When I request geolocation data for IP "8.8.8.8"
-    Then the response status code should be 200
-    And the response should include geolocation data
-    And the data should include country and city information
-```
-
-With implementation:
-```python
-# tests/features/steps/test_geolocation_steps.py
-from pytest_bdd import given, when, then, parsers
-import requests
-
-@given("the API is running")
-def api_running(api_base_url):
-    response = requests.get(f"{api_base_url}/health")
-    assert response.status_code == 200
-
-@when(parsers.parse('I request geolocation data for IP "{ip}"'))
-def request_geolocation(api_base_url, ip):
-    response = requests.get(f"{api_base_url}/api/geolocations/{ip}")
-    return response
-
-@then(parsers.parse('the response status code should be {status:d}'))
-def check_status_code(response, status):
-    assert response.status_code == status
-
-@then("the response should include geolocation data")
-def check_geolocation_data(response):
-    data = response.json()["data"]
-    assert data is not None
-    assert "ip" in data
-
-@then("the data should include country and city information")
-def check_country_city_data(response):
-    data = response.json()["data"]
     assert "country_name" in data
     assert "city" in data
 ```

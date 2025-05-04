@@ -216,8 +216,12 @@ htmlcov/
 .coverage.*
 nosetests.xml
 coverage.xml
+coverage-*.xml
 *.cover
 .hypothesis/
+pytest-report.html
+pytest-report.xml
+pytest.xml
 
 # Docker
 .dockerignore
