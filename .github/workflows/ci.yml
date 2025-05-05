@@ -43,11 +43,27 @@ jobs:
           
       - name: Security scan with bandit
         run: |
-          poetry run bandit -r app/ --exclude app/tests
+          poetry run bandit -r app/ --exclude app/tests -ll -ii
+          
+      - name: Generate security report
+        run: |
+          mkdir -p security-reports
+          poetry run bandit -r app/ --exclude app/tests -f json -o security-reports/bandit-report.json || true
+          poetry run safety scan --json > security-reports/safety-report.json || true
+          
+      - name: Upload security reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-reports
+          path: security-reports/
           
       - name: Security scan with safety
         run: |
-          poetry run safety scan
+          poetry run safety scan -o text
+          
+      - name: Check for outdated dependencies
+        run: |
+          poetry show --outdated
   
   unit-tests:
     name: Unit Tests

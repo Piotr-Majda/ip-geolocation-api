@@ -1,6 +1,7 @@
 """
 Global pytest fixtures for the IP Geolocation API tests.
 """
+
 import os
 import pytest
 import httpx

@@ -1,6 +1,7 @@
 """
 API tests for health endpoints to verify the application is running correctly.
 """
+
 import pytest
 
 
