@@ -13,6 +13,8 @@ lint:
 	$(POETRY) run flake8 app tests
 	$(POETRY) run black --check app tests
 	$(POETRY) run mypy app tests
+	$(POETRY) run bandit -r app/ --exclude app/tests
+	$(POETRY) run safety scan
 
 test:
 	$(POETRY) run pytest tests

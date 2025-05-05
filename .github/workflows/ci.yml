@@ -40,6 +40,14 @@ jobs:
       - name: Check type hints with mypy
         run: |
           poetry run mypy app tests
+          
+      - name: Security scan with bandit
+        run: |
+          poetry run bandit -r app/ --exclude app/tests
+          
+      - name: Security scan with safety
+        run: |
+          poetry run safety scan
   
   unit-tests:
     name: Unit Tests
@@ -194,6 +202,10 @@ jobs:
           coverage combine coverage-reports/coverage-*/coverage-*.xml
           coverage report
           coverage xml
+      
+      - name: Check coverage threshold
+        run: |
+          coverage report --fail-under=80
       
       - name: Upload combined coverage report
         uses: codecov/codecov-action@v3

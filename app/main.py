@@ -1,8 +1,12 @@
 import os
+
+from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from dotenv import load_dotenv
+
+# Import logging middleware
+from app.middleware import add_logging_middleware
 
 # Load environment variables
 load_dotenv()
@@ -13,6 +17,9 @@ app = FastAPI(
     description=("API for storing and retrieving geolocation data " "based on IP addresses"),
     version="0.1.0",
 )
+
+# Add logging middleware
+add_logging_middleware(app)
 
 # Configure CORS
 app.add_middleware(
@@ -84,5 +91,12 @@ async def global_exception_handler(request, exc):
 if __name__ == "__main__":
     import uvicorn
 
+    # Get host and port from environment variables or use safe defaults
+    host = os.getenv("HOST", "127.0.0.1")  # Default to localhost for safety
     port = int(os.getenv("PORT", 8000))
-    uvicorn.run("app.main:app", host="0.0.0.0", port=port, reload=True)
+
+    # Enable binding to all interfaces only in production environment
+    if os.getenv("ENVIRONMENT") == "production":
+        host = "0.0.0.0"  # nosec B104 - Intentional for production environments
+
+    uvicorn.run("app.main:app", host=host, port=port, reload=True)
