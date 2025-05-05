@@ -1,9 +1,13 @@
-.PHONY: setup lint test unit-test api-test integration-test e2e-test docker-build docker-up docker-down docker-test clean coverage
+.PHONY: setup lint test unit-test api-test integration-test e2e-test docker-build docker-up docker-down docker-test clean coverage security-scan
+
+# Include .env file if it exists
+-include .env
 
 # Environment variables
 DOCKER_COMPOSE = docker-compose
 DOCKER_COMPOSE_TEST = docker-compose -f docker-compose.test.yml
 POETRY = poetry
+SAFETY_KEY = $(if $(SAFETY_API_KEY),--key $(SAFETY_API_KEY),)
 
 # Main targets
 setup:
@@ -13,8 +17,12 @@ lint:
 	$(POETRY) run flake8 app tests
 	$(POETRY) run black --check app tests
 	$(POETRY) run mypy app tests
+
+security-scan:
 	$(POETRY) run bandit -r app/ --exclude app/tests
-	$(POETRY) run safety scan
+	$(POETRY) run safety scan $(SAFETY_KEY)
+
+lint-all: lint security-scan
 
 test:
 	$(POETRY) run pytest tests
@@ -37,6 +45,13 @@ coverage:
 	$(POETRY) run coverage xml
 	$(POETRY) run coverage html
 
+# Security report generation
+security-report:
+	mkdir -p security-reports
+	$(POETRY) run bandit -r app/ --exclude app/tests -f json -o security-reports/bandit-report.json || true
+	$(POETRY) run safety scan --json $(SAFETY_KEY) > security-reports/safety-report.json || true
+	@echo "Security reports generated in security-reports directory"
+
 # Docker commands
 docker-build:
 	$(DOCKER_COMPOSE) build
@@ -58,6 +73,7 @@ clean:
 	rm -rf .coverage
 	rm -rf htmlcov
 	rm -rf coverage.xml
+	rm -rf security-reports
 	find . -type d -name __pycache__ -exec rm -rf {} +
 	find . -type d -name "*.egg-info" -exec rm -rf {} +
 	find . -type f -name "*.pyc" -delete

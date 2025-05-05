@@ -46,10 +46,12 @@ jobs:
           poetry run bandit -r app/ --exclude app/tests -ll -ii
           
       - name: Generate security report
+        env:
+          SAFETY_API_KEY: ${{ secrets.SAFETY_API_KEY }}
         run: |
           mkdir -p security-reports
           poetry run bandit -r app/ --exclude app/tests -f json -o security-reports/bandit-report.json || true
-          poetry run safety scan --json > security-reports/safety-report.json || true
+          poetry run safety scan --json --key $SAFETY_API_KEY > security-reports/safety-report.json || true
           
       - name: Upload security reports
         uses: actions/upload-artifact@v4
@@ -58,8 +60,10 @@ jobs:
           path: security-reports/
           
       - name: Security scan with safety
+        env:
+          SAFETY_API_KEY: ${{ secrets.SAFETY_API_KEY }}
         run: |
-          poetry run safety scan -o text
+          poetry run safety scan -o text --key $SAFETY_API_KEY
           
       - name: Check for outdated dependencies
         run: |
