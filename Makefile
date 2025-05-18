@@ -30,11 +30,11 @@ test:
 unit-test:
 	$(POETRY) run pytest tests/unit
 
-api-test:
-	$(POETRY) run pytest tests/api
-
 integration-test:
 	$(POETRY) run pytest tests/integration
+
+api-test:
+	$(POETRY) run pytest tests/api
 
 coverage:
 	$(POETRY) run pytest tests/unit --cov=app --cov-report=xml:coverage-unit.xml
@@ -62,11 +62,6 @@ docker-up:
 docker-down:
 	$(DOCKER_COMPOSE) down
 
-# Docker test commands
-docker-test:
-	$(DOCKER_COMPOSE_TEST) up --build --abort-on-container-exit
-	$(DOCKER_COMPOSE_TEST) down
-
 # Clean up commands
 clean:
 	rm -rf .pytest_cache
@@ -80,3 +75,6 @@ clean:
 	find . -type f -name "*.pyo" -delete
 	find . -type f -name "*.pyd" -delete
 	find . -type f -name "coverage-*.xml" -delete
+
+populate-test-data:
+	$(POETRY) run python scripts/populate_test_data.py

@@ -3,8 +3,12 @@ import logging
 import os
 from typing import Any, Dict, Optional
 
+from dotenv import load_dotenv
+
 # Create loggers dictionary to track configured loggers
 _loggers: Dict[str, logging.Logger] = {}
+
+load_dotenv()
 
 
 class JsonFormatter(logging.Formatter):
@@ -90,14 +94,23 @@ def get_logger(name: str, level: Optional[str] = None) -> logging.Logger:
     logger.handlers = []
 
     # Create console handler
-    handler = logging.StreamHandler()
-    handler.setFormatter(JsonFormatter())
+    if os.getenv("APP_LOG_FORMAT", "json") == "json":
+        handler = logging.StreamHandler()
+        handler.setFormatter(JsonFormatter())
+    else:
+        handler = logging.StreamHandler()
+        handler.setFormatter(
+            logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+        )
 
     # Add request context filter
     context_filter = RequestContextFilter()
     handler.addFilter(context_filter)
 
     logger.addHandler(handler)
+    logger.info(
+        f"Logger {name} initialized with level {level} and format {os.getenv('APP_LOG_FORMAT', 'json')}"
+    )
 
     # Don't propagate to root logger
     logger.propagate = False
@@ -146,6 +159,12 @@ def setup_logging(level: Optional[str] = None) -> None:
     # Just update the existing loggers' levels
     app_logger.setLevel(numeric_level)
     api_logger.setLevel(numeric_level)
-
     # Log initial message
     app_logger.info({"message": "Logging system initialized", "log_level": level})
+
+
+logging.getLogger("sqlalchemy.engine.Engine").setLevel(logging.WARNING)
+logging.getLogger("sqlalchemy.engine").setLevel(logging.WARNING)
+logging.getLogger("sqlalchemy.pool").setLevel(logging.WARNING)
+logging.getLogger("sqlalchemy.dialects").setLevel(logging.WARNING)
+logging.getLogger("httpx").setLevel(logging.WARNING)

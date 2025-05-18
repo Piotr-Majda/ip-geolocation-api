@@ -53,8 +53,8 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
         *,
         sensitive_headers: Optional[Set[str]] = None,
         sensitive_query_params: Optional[Set[str]] = None,
-        log_request_body: bool = False,
-        log_response_body: bool = False,
+        log_request_body: bool = True,
+        log_response_body: bool = True,
     ):
         super().__init__(app)
         self.sensitive_headers = sensitive_headers or {
@@ -244,8 +244,8 @@ def add_logging_middleware(app: FastAPI) -> None:
         RequestLoggingMiddleware,
         sensitive_headers={"authorization", "x-api-key", "api-key", "cookie"},
         sensitive_query_params={"api_key", "token", "key"},
-        log_request_body=False,  # Set to True if you want to log request bodies
-        log_response_body=False,  # Set to True if you want to log response bodies
+        log_request_body=True,  # Set to True if you want to log request bodies
+        log_response_body=True,  # Set to True if you want to log response bodies
     )
 
     api_logger.info({"message": "Logging middleware initialized", "log_level": log_level})

@@ -1,9 +1,11 @@
 # IP Geolocation API
 
 ## Project Overview
+
 A RESTful API service that stores and manages geolocation data based on IP addresses or URLs. The service fetches geolocation data from IPStack and provides endpoints to add, delete, and retrieve this information.
 
 ## Features
+
 - Store IP/URL geolocation data in database
 - Fetch geolocation data from external provider (IPStack)
 - RESTful API with JSON request/response format
@@ -11,6 +13,7 @@ A RESTful API service that stores and manages geolocation data based on IP addre
 - Comprehensive test coverage
 
 ## Architecture
+
 ```
 ┌─────────────┐      ┌─────────────┐      ┌─────────────┐
 │             │      │             │      │             │
@@ -27,136 +30,173 @@ A RESTful API service that stores and manages geolocation data based on IP addre
 ```
 
 ## API Endpoints
-- `GET /api/geolocations/:ip` - Get geolocation data for IP/URL
-- `POST /api/geolocations` - Add new geolocation data
-- `DELETE /api/geolocations/:ip` - Delete geolocation data
+
+- `GET /api/v1/geolocation/` - Get geolocation data for IP/URL (query params)
+- `POST /api/v1/geolocation/` - Add new geolocation data
+- `DELETE /api/v1/geolocation/` - Delete geolocation data
+- `GET /health` - Health check
+- `GET /api/v1/docs` - API documentation (Swagger UI)
+- `GET /api/v1/openapi.json` - OpenAPI spec
 
 ## Technology Stack
 
 ### Backend
+
 - **FastAPI**: Modern, high-performance framework with built-in validation
-- **SQLAlchemy**: ORM for database interactions 
+- **SQLAlchemy**: ORM for database interactions
 - **Pydantic**: For data validation (comes integrated with FastAPI)
 
 ### Database
+
 - **PostgreSQL**: Robust relational database
-- **Redis**: For caching IPStack responses to reduce API calls
 
 ### Infrastructure
+
 - **Docker & Docker Compose**: For containerization and easy deployment
 - **Gunicorn + Uvicorn**: For production deployment
 
 ### Testing
-- **Pytest**: For unit and integration tests
-- **Pytest-cov**: For test coverage reporting
-- **HTTPx**: For testing HTTP requests
+
+- **Pytest**: For unit, API, and integration tests
+- **HTTPx**: For async HTTP API testing
+- **pytest-cov**: For test coverage reporting
+- **In-memory DB & Mocked External Services**: All tests use an in-memory database and mock the external IPStack service for isolation and speed
 
 ### Utilities
-- **Requests**: For calling the IPStack API
+
 - **Python-dotenv**: For environment variable management
 
 ## Setup Instructions
 
 ### Prerequisites
+
 - Docker and Docker Compose
 - IPStack API key (https://ipstack.com/)
 - Python 3.13+ and Poetry (for local development)
 
 ### Environment Variables
+
 Create a `.env` file with the following variables:
+
 ```
-IPSTACK_API_KEY=your_api_key_here
 DATABASE_URL=your_database_url
-PORT=8000
+IPSTACK_API_KEY=your_api_key_here
+APP_LOG_FORMAT=text|json
 ```
 
-### Installation
+### Installation & Running
 
 #### Using Docker (Recommended for Production)
+
 1. Clone the repository
+
 ```bash
 git clone https://github.com/yourusername/ip-geolocation-api.git
 cd ip-geolocation-api
 ```
 
-2. Start the application using Docker Compose
+2. Create a `.env` file as above
+3. Build and start the application
+
 ```bash
-docker-compose up -d
+make docker-build
+make docker-up
 ```
 
+4. Access the API:
+   - http://localhost:8000
+   - Docs: http://localhost:8000/api/v1/docs
+   - OpenAPI: http://localhost:8000/api/v1/openapi.json
+   - Health: http://localhost:8000/health
+
 #### Local Development with Poetry
-1. Install dependencies using Poetry
+
+1. Install dependencies
+
 ```bash
-# Windows
 make setup
 # or
 poetry install
 ```
 
-## Running the Application
-The application will be available at http://localhost:8000
-
-## Testing
-
-### Using Makefile Commands
-We provide several commands through Makefile (or make.bat on Windows) to simplify development:
+2. Start the database (locally or with Docker)
 
 ```bash
-# Run all tests locally
-make test
-
-# Run specific test types
-make unit-test
-make api-test
-make integration-test
-
-# Run lint checks
-make lint
-
-# Run tests in Docker (API and integration tests)
-make docker-test
-
-# Start Docker environment
-make docker-up
-
-# Stop Docker environment
-make docker-down
+docker-compose up -d db
 ```
 
-### Manual Testing Commands
+3. Run the application
 
-#### Local Testing
 ```bash
-# Run all tests
-poetry run pytest tests
-
-# Run specific test directories
-poetry run pytest tests/unit
-poetry run pytest tests/api
-poetry run pytest tests/integration
+poetry run uvicorn app.main:app --reload
 ```
 
-#### Docker Testing
+## Running Tests
+
+You can run tests using the Makefile or Poetry:
+
+**With Makefile:**
+
 ```bash
-# Run API and integration tests in a production-like environment
-docker-compose -f docker-compose.test.yml up --build --abort-on-container-exit
+make test           # Run all tests
+make unit-test      # Run unit tests
+make api-test       # Run API tests
+make integration-test # Run integration tests
 ```
+
+**With Poetry:**
+
+```bash
+poetry run pytest             # Run all tests
+poetry run pytest tests/api   # Run API tests
+poetry run pytest tests/unit  # Run unit tests
+poetry run pytest tests/integration # Run integration tests
+```
+
+**With Docker:**
+
+```bash
+docker-compose exec api pytest
+```
+
+- **Note:** All tests use an in-memory database and mock the external IPStack service for fast, isolated, and reliable test runs.
+
+## Populating the Database with Sample Data
+
+To quickly populate the database with sample geolocation data for manual testing or QA, use the provided script or Makefile target:
+
+**With Makefile:**
+
+```bash
+make populate-test-data
+```
+
+**With Poetry:**
+
+```bash
+poetry run python scripts/populate_test_data.py
+```
+
+This will insert sample geolocation records into your database so you can immediately interact with the API.
 
 ## Troubleshooting
 
 ### Database Connection Issues
+
 - Verify database credentials in `.env` file
 - Check if database container is running: `docker-compose ps`
 - Check database logs: `docker-compose logs db`
 - The application implements retry mechanisms for temporary database outages
 
 ### IPStack API Issues
+
 - Verify your API key is valid and has sufficient quota
 - The application caches previously fetched data to reduce API calls
 - Check network connectivity to IPStack servers
 - The application will serve cached data when IPStack is unavailable
 
 ### API Error Codes
+
 - `400` - Invalid input (malformed IP/URL)
 - `404` - Geolocation data not found
 - `429` - Rate limit exceeded for IPStack API
@@ -164,26 +204,28 @@ docker-compose -f docker-compose.test.yml up --build --abort-on-container-exit
 - `503` - External service unavailable
 
 ## Development
+
 1. Install dependencies locally:
+
 ```bash
-pip install -r requirements.txt
+make setup
+# or
+poetry install
 ```
 
 2. Run in development mode:
+
 ```bash
-# For FastAPI
-uvicorn app.main:app --reload
+poetry run uvicorn app.main:app --reload
 ```
 
 3. Build for production:
-```bash
-# Install production WSGI/ASGI servers
-pip install gunicorn uvicorn
 
-# Run with gunicorn and uvicorn workers
-gunicorn app.main:app -w 4 -k uvicorn.workers.UvicornWorker
+```bash
+make docker-build
+make docker-up
 ```
 
 ## License
-MIT
 
+MIT
