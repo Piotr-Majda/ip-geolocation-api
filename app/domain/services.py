@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Optional
 
-from app.domain.models.ip_data import IpGeolocationData
+from app.domain.models.ip_data import Geolocation
 
 
 class IpGeolocationServiceError(Exception):
@@ -16,7 +16,7 @@ class IpGeolocationService(ABC):
     """Interface for retrieving IP geolocation data from external services."""
 
     @abstractmethod
-    async def get_geolocation_by_ip(self, ip_address: str) -> Optional[IpGeolocationData]:
+    async def get_geolocation_by_ip(self, ip_address: str) -> Optional[Geolocation]:
         """
         Retrieve geolocation data for an IP address from an external service.
 
@@ -32,7 +32,7 @@ class IpGeolocationService(ABC):
         pass
 
     @abstractmethod
-    async def get_geolocation_by_url(self, url: str) -> Optional[IpGeolocationData]:
+    async def get_geolocation_by_url(self, url: str) -> Optional[Geolocation]:
         """
         Retrieve geolocation data for an URL from an external service.
 

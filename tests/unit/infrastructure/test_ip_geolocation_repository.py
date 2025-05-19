@@ -1,10 +1,11 @@
+from datetime import datetime
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-
+from pydantic import IPvAnyAddress, AnyUrl
 from sqlalchemy.exc import OperationalError
 
-from app.domain.models.ip_data import IpGeolocationData
+from app.domain.models.ip_data import Geolocation
 from app.infrastructure.ip_geolocation_repository import (
     DatabaseUnavailableError,
     IpGeolocationRepositoryImpl,
@@ -52,12 +53,18 @@ class TestIpGeolocationRepositoryImpl:
 
     @pytest.fixture
     def ip_data(self):
-        return IpGeolocationData(
-            ip="1.1.1.1",
-            url="example.com",
+        return Geolocation(
+            ip="1.1.1.1", # type: ignore
+            url="http://example.com", # type: ignore
             city="Sydney",
             country="Australia",
-            # Add other required fields as needed
+            latitude=1.1,
+            longitude=1.1,
+            region="NSW",
+            continent="Australia",
+            postal_code="2000",
+            created_at=datetime.now(),
+            updated_at=datetime.now(),
         )
 
     async def test_add_success(self, repo, mock_session, ip_data):
@@ -69,7 +76,7 @@ class TestIpGeolocationRepositoryImpl:
         result = await repo.add(ip_data)
 
         # Then
-        assert isinstance(result, IpGeolocationData)
+        assert isinstance(result, Geolocation)
         assert result.ip == ip_data.ip
 
     async def test_add_operational_error(self, repo, mock_session, ip_data):
@@ -92,7 +99,7 @@ class TestIpGeolocationRepositoryImpl:
         result = await repo.get_by_ip(ip_data.ip)
 
         # Then
-        assert isinstance(result, IpGeolocationData)
+        assert isinstance(result, Geolocation)
         assert result.ip == ip_data.ip
 
     async def test_get_by_ip_not_found(self, repo, mock_session):
@@ -125,7 +132,7 @@ class TestIpGeolocationRepositoryImpl:
         result = await repo.get_by_url(ip_data.url)
 
         # Then
-        assert isinstance(result, IpGeolocationData)
+        assert isinstance(result, Geolocation)
         assert result.url == ip_data.url
 
     async def test_get_by_url_not_found(self, repo, mock_session):

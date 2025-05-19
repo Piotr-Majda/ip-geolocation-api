@@ -5,9 +5,9 @@
 
 # Environment variables
 DOCKER_COMPOSE = docker-compose
-DOCKER_COMPOSE_TEST = docker-compose -f docker-compose.test.yml
 POETRY = poetry
 SAFETY_KEY = $(if $(SAFETY_API_KEY),--key $(SAFETY_API_KEY),)
+IPSTACK_KEY = $(if $(IPSTACK_API_KEY),--api-key $(IPSTACK_API_KEY),)
 
 # Main targets
 setup:
@@ -32,6 +32,10 @@ unit-test:
 
 integration-test:
 	$(POETRY) run pytest tests/integration
+
+# real api test
+integration-real-api-test:
+	$(POETRY) run pytest tests/integration --use-real-api $(IPSTACK_KEY)
 
 api-test:
 	$(POETRY) run pytest tests/api
@@ -76,5 +80,21 @@ clean:
 	find . -type f -name "*.pyd" -delete
 	find . -type f -name "coverage-*.xml" -delete
 
-populate-test-data:
-	$(POETRY) run python scripts/populate_test_data.py
+# migration commands
+migrate:
+	$(POETRY) run alembic upgrade head
+
+migrate-docker:
+	$(DOCKER_COMPOSE) exec -it api alembic upgrade head
+
+# seed commands
+seed:
+	$(POETRY) run python scripts/seed.py
+
+seed-docker:
+	$(DOCKER_COMPOSE) exec -it api python scripts/seed.py
+
+# migrate and seed commands
+migrate-seed-docker: migrate-docker seed-docker
+
+migrate-seed: migrate seed

@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock, MagicMock
 import httpx
 import pytest
 from sqlalchemy import delete
-from app.domain.models.ip_data import IpGeolocationData
+from app.domain.models.ip_data import Geolocation
 from app.domain.services import IpGeolocationService, IpGeolocationServiceError
 from app.infrastructure.database import DatabaseClient
 from app.infrastructure.models import IpGeolocation
@@ -15,6 +15,21 @@ from app.interfaces.api.routes.dependencies import get_database_client, get_ip_g
 
 # Import the FastAPI app
 from app.main import app
+
+# pytest options
+def pytest_addoption(parser):
+    parser.addoption(
+        "--use-real-api",
+        action="store_true",
+        default=False,
+        help="Run tests against real IpStack API",
+    )
+    parser.addoption(
+        "--api-key",
+        action="store",
+        default=None,
+        help="API key for IpStack service",
+    )
 
 # Database client
 
@@ -47,7 +62,10 @@ async def database_client_down(database_client: DatabaseClient):
         
 
 @pytest.fixture
-async def populate_db_with_ip_geolocation_data(database_client: DatabaseClient, ip_geolocation_data: IpGeolocationData):
+async def populate_db_with_ip_geolocation_data(
+    database_client: DatabaseClient, 
+    ip_geolocation_data: Geolocation
+):
     """
     Populate the database with IP geolocation data.
     """
@@ -64,11 +82,11 @@ async def populate_db_with_ip_geolocation_data(database_client: DatabaseClient, 
 
 
 @pytest.fixture
-def ip_geolocation_data(request) -> IpGeolocationData | None:
+def ip_geolocation_data(request) -> Geolocation | None:
     """
     IP geolocation data that is up.
     """
-    if getattr(request, "param", None) and isinstance(request.param, IpGeolocationData):
+    if getattr(request, "param", None) and isinstance(request.param, Geolocation):
         geolocation_data = request.param
     else:
         geolocation_data = None
@@ -76,7 +94,7 @@ def ip_geolocation_data(request) -> IpGeolocationData | None:
 
 
 @pytest.fixture
-def ip_geolocation_service(request, ip_geolocation_data: IpGeolocationData | None) -> IpGeolocationService:
+def ip_geolocation_service(request, ip_geolocation_data: Geolocation | None) -> IpGeolocationService:
     """
     IP geolocation service
     param: bool, if False, the service is unavailable, otherwise it is up

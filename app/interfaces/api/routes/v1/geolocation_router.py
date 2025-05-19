@@ -37,10 +37,11 @@ async def add_geolocation(
     ],
 ):
     """
-    Add geolocation by IP address or URL
+    Add or update geolocation data by IP address or URL.
+    If the record exists, it will be updated with fresh data from the external service.
 
     Args:
-        request (AddGeolocationRequest): IP address or URL to add geolocation
+        request (GeolocationRequest): IP address or URL to add/update geolocation
         geolocation_application_service (Annotated[GeolocationApplicationService, Depends]): Geolocation application service
 
     Raises:
@@ -48,14 +49,19 @@ async def add_geolocation(
         HTTPException: External service error
 
     Returns:
-        JsonResponse: Success response
+        JsonResponse: Success response with geolocation data
     """
     try:
         if request.ip_address is not None:
-            geolocation = await geolocation_application_service.add_ip_data(str(request.ip_address))
+            geolocation = await geolocation_application_service.add_ip_data(
+                str(request.ip_address)
+            )
         else:
             geolocation = await geolocation_application_service.add_url_data(str(request.url))
-        return {"status": "success", "data": {"geolocation": geolocation.model_dump()}}
+        return {
+            "status": "success",
+            "data": {"geolocation": geolocation.model_dump()},
+        }
 
     except DatabaseUnavailableError as e:
         api_logger.error(f"Database unavailable: \n{traceback.format_exc()}")
@@ -69,10 +75,13 @@ async def add_geolocation(
         )
     except NotFoundGeolocationData as e:
         api_logger.error(f"IP data not found: \n{traceback.format_exc()}")
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="IP data not found on external service")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="IP data not found on external service"
+        )
     except Exception as e:
-        api_logger.error(f"Error adding geolocation: \n{traceback.format_exc()}")
+        api_logger.error(f"Error adding/updating geolocation: \n{traceback.format_exc()}")
         raise e
+
 
 @router.delete("/")
 async def delete_geolocation(
@@ -165,7 +174,7 @@ async def get_geolocation(
         api_logger.error(f"Error getting geolocation: \n{traceback.format_exc()}")
         raise e
     if data is None:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="Geolocation data not found"
-            )
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Geolocation data not found"
+        )
     return {"status": "success", "data": {"geolocation": data.model_dump()}}

@@ -26,6 +26,8 @@ services:
     volumes:
       - ./app:/app/app
       - ./pytest.ini:/app/pytest.ini
+      - ./alembic.ini:/app/alembic.ini
+      - ./migrations:/app/migrations
     env_file:
       - .env
     ports:

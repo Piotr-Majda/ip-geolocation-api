@@ -3,7 +3,7 @@ from unittest.mock import AsyncMock, patch
 import httpx
 import pytest
 
-from app.domain.models.ip_data import IpGeolocationData
+from app.domain.models.ip_data import Geolocation
 from app.domain.services import IpGeolocationServiceError, IpGeolocationServiceUnavailableError
 from app.infrastructure.ipstack_geolocation_service import IpStackGeolocationService
 
@@ -35,7 +35,7 @@ class TestIpStackGeolocationService:
         result = await service.get_geolocation_by_ip("1.1.1.1")
 
         # Then
-        assert isinstance(result, IpGeolocationData)
+        assert isinstance(result, Geolocation)
         assert result.ip == ip_data["ip"]
 
     @patch("httpx.AsyncClient.get")
@@ -61,7 +61,7 @@ class TestIpStackGeolocationService:
         result = await service.get_geolocation_by_url("example.com")
 
         # Then
-        assert isinstance(result, IpGeolocationData)
+        assert isinstance(result, Geolocation)
         assert result.ip == ip_data["ip"]
 
     @patch("httpx.AsyncClient.get")

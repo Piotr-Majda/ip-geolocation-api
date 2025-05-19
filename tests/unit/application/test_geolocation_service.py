@@ -6,7 +6,7 @@ from app.application.geolocation_service import (
     GeolocationApplicationService,
     NotFoundGeolocationData,
 )
-from app.domain.models.ip_data import IpGeolocationData
+from app.domain.models.ip_data import Geolocation
 
 
 @pytest.fixture
@@ -27,7 +27,7 @@ def app_service(repo, service):
 @pytest.mark.asyncio
 async def test_get_ip_data_returns_data(app_service, repo):
     # Given
-    ip_data = IpGeolocationData(ip="1.1.1.1")
+    ip_data = Geolocation(ip="1.1.1.1")
     repo.get_by_ip = AsyncMock(return_value=ip_data)
     # When
     result = await app_service.get_ip_data("1.1.1.1")
@@ -39,7 +39,7 @@ async def test_get_ip_data_returns_data(app_service, repo):
 @pytest.mark.asyncio
 async def test_get_url_data_returns_data(app_service, repo):
     # Given
-    url_data = IpGeolocationData(ip="1.1.1.1", url="example.com")
+    url_data = Geolocation(ip="1.1.1.1", url="example.com")
     repo.get_by_url = AsyncMock(return_value=url_data)
     # When
     result = await app_service.get_url_data("example.com")
@@ -51,7 +51,7 @@ async def test_get_url_data_returns_data(app_service, repo):
 @pytest.mark.asyncio
 async def test_add_ip_data_success(app_service, service, repo):
     # Given
-    ip_data = IpGeolocationData(ip="1.1.1.1")
+    ip_data = Geolocation(ip="1.1.1.1")
     service.get_geolocation_by_ip = AsyncMock(return_value=ip_data)
     repo.add = AsyncMock(return_value=ip_data)
     # When
@@ -75,7 +75,7 @@ async def test_add_ip_data_not_found(app_service, service):
 @pytest.mark.asyncio
 async def test_add_url_data_success(app_service, service, repo):
     # Given
-    url_data = IpGeolocationData(ip="1.1.1.1", url="example.com")
+    url_data = Geolocation(ip="1.1.1.1", url="example.com")
     service.get_geolocation_by_url = AsyncMock(return_value=url_data)
     repo.add = AsyncMock(return_value=url_data)
     # When
