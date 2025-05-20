@@ -1,4 +1,4 @@
-from typing import Optional, Tuple
+from typing import Optional
 
 from app.domain.models.ip_data import Geolocation
 from app.domain.repositories import IpGeolocationRepository

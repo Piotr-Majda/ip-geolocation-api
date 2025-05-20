@@ -1,8 +1,7 @@
-from datetime import datetime
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-from pydantic import IPvAnyAddress, AnyUrl
+from psycopg2 import IntegrityError
 from sqlalchemy.exc import OperationalError
 
 from app.domain.models.ip_data import Geolocation
@@ -10,7 +9,6 @@ from app.infrastructure.ip_geolocation_repository import (
     DatabaseUnavailableError,
     IpGeolocationRepositoryImpl,
 )
-from app.infrastructure.models import IpGeolocation
 
 
 # Dummy ORM class for model_validate
@@ -18,13 +16,15 @@ class DummyORM:
     def __init__(self, **kwargs):
         for k, v in kwargs.items():
             setattr(self, k, v)
-            
+
 
 class AsyncSessionContextManager:
     def __init__(self, session):
         self.session = session
+
     async def __aenter__(self):
         return self.session
+
     async def __aexit__(self, exc_type, exc, tb):
         pass
 
@@ -54,8 +54,8 @@ class TestIpGeolocationRepositoryImpl:
     @pytest.fixture
     def ip_data(self):
         return Geolocation(
-            ip="1.1.1.1", # type: ignore
-            url="http://example.com", # type: ignore
+            ip="1.1.1.1",
+            url="http://example.com",
             city="Sydney",
             country="Australia",
             latitude=1.1,
@@ -63,14 +63,27 @@ class TestIpGeolocationRepositoryImpl:
             region="NSW",
             continent="Australia",
             postal_code="2000",
-            created_at=datetime.now(),
-            updated_at=datetime.now(),
-        )
+        )  # type: ignore
+
+    @pytest.fixture
+    def ip_data_with_invalid_ip(self):
+        return Geolocation(
+            ip="1.1.1.1",
+            url="http://example.com",
+            city="Sydney",
+            country="Australia",
+            latitude=1.1,
+            longitude=1.1,
+            region="NSW",
+            continent="Australia",
+            postal_code="2000",
+        )  # type: ignore
 
     async def test_add_success(self, repo, mock_session, ip_data):
         # Given
         mock_session.commit.return_value = None
         mock_session.refresh.return_value = None
+        repo.exists_by_ip = AsyncMock(return_value=False)
 
         # When
         result = await repo.add(ip_data)
@@ -79,15 +92,107 @@ class TestIpGeolocationRepositoryImpl:
         assert isinstance(result, Geolocation)
         assert result.ip == ip_data.ip
 
+    async def test_add_but_record_exists(self, repo, mock_session, ip_data):
+        # Given
+        mock_session.commit.return_value = None
+        mock_session.refresh.return_value = None
+        repo.exists_by_ip = AsyncMock(return_value=True)
+
+        # When / Then
+        with pytest.raises(ValueError, match=f"Record with IP {ip_data.ip} already exists"):
+            await repo.add(ip_data)
+
     async def test_add_operational_error(self, repo, mock_session, ip_data):
         # Given
 
         mock_session.commit.side_effect = OperationalError("stmt", {}, Exception())
         mock_session.rollback.return_value = None
+        repo.exists_by_ip = AsyncMock(return_value=False)
 
         # When / Then
         with pytest.raises(DatabaseUnavailableError):
             await repo.add(ip_data)
+
+    async def test_add_integrity_error(self, repo, mock_session, ip_data):
+        # Given
+        mock_session.commit.side_effect = IntegrityError("stmt", {}, Exception())
+        mock_session.rollback.return_value = None
+        repo.exists_by_ip = AsyncMock(return_value=False)
+        # When / Then
+        with pytest.raises(DatabaseUnavailableError):
+            await repo.add(ip_data)
+
+    async def test_add_unexpected_error(self, repo, mock_session, ip_data):
+        # Given
+        mock_session.commit.side_effect = Exception("unexpected")
+        mock_session.rollback.return_value = None
+        repo.exists_by_ip = AsyncMock(return_value=False)
+
+        # When / Then
+        with pytest.raises(DatabaseUnavailableError):
+            await repo.add(ip_data)
+
+    async def test_update_success(self, repo, mock_session, ip_data):
+        # Given
+        mock_session.commit.return_value = None
+        mock_session.refresh.return_value = None
+        # Simulate existing record
+        existing = MagicMock()
+        mock_result = MagicMock()
+        mock_result.scalar_one_or_none.return_value = existing
+        mock_session.execute.return_value = mock_result
+
+        # When
+        result = await repo.update(ip_data)
+
+        # Then
+        assert isinstance(result, Geolocation)
+        assert result.ip == ip_data.ip
+
+    async def test_update_not_found(self, repo, mock_session, ip_data):
+        # Given
+        mock_result = MagicMock()
+        mock_result.scalar_one_or_none.return_value = None  # No record found
+        mock_session.execute.return_value = mock_result
+
+        # When / Then
+        with pytest.raises(ValueError, match=f"Record with IP {ip_data.ip} does not exist"):
+            await repo.update(ip_data)
+
+    async def test_update_operational_error(self, repo, mock_session, ip_data):
+        # Given
+        mock_session.execute.side_effect = OperationalError("stmt", {}, Exception())
+        mock_session.rollback.return_value = None
+
+        # When / Then
+        with pytest.raises(DatabaseUnavailableError):
+            await repo.update(ip_data)
+
+    async def test_update_integrity_error(self, repo, mock_session, ip_data):
+        # Given
+        existing = MagicMock()
+        mock_result = MagicMock()
+        mock_result.scalar_one_or_none.return_value = existing
+        mock_session.execute.return_value = mock_result
+        mock_session.commit.side_effect = IntegrityError("stmt", {}, Exception())
+        mock_session.rollback.return_value = None
+
+        # When / Then
+        with pytest.raises(DatabaseUnavailableError):
+            await repo.update(ip_data)
+
+    async def test_update_unexpected_error(self, repo, mock_session, ip_data):
+        # Given
+        existing = MagicMock()
+        mock_result = MagicMock()
+        mock_result.scalar_one_or_none.return_value = existing
+        mock_session.execute.return_value = mock_result
+        mock_session.commit.side_effect = Exception("unexpected")
+        mock_session.rollback.return_value = None
+
+        # When / Then
+        with pytest.raises(DatabaseUnavailableError):
+            await repo.update(ip_data)
 
     async def test_get_by_ip_found(self, repo, mock_session, ip_data):
         # Given
@@ -182,7 +287,6 @@ class TestIpGeolocationRepositoryImpl:
 
     async def test_delete_by_ip_operational_error(self, repo, mock_session):
         # Given
-        
 
         mock_session.execute.side_effect = OperationalError("stmt", {}, Exception())
         mock_session.rollback.return_value = None
@@ -204,7 +308,7 @@ class TestIpGeolocationRepositoryImpl:
         # Then
         assert result is True
 
-    async def test_delete_by_url_not_found(self, repo, mock_session): 
+    async def test_delete_by_url_not_found(self, repo, mock_session):
         # Given
         mock_result = MagicMock()
         mock_result.rowcount = 0
@@ -255,3 +359,35 @@ class TestIpGeolocationRepositoryImpl:
 
         # Then
         assert result is False
+
+    async def test_exists_by_url_true(self, repo, mock_session):
+        # Given
+        mock_result = MagicMock()
+        mock_result.scalar_one_or_none.return_value = MagicMock()  # Simulate found
+        mock_session.execute.return_value = mock_result
+
+        # When
+        result = await repo.exists_by_url("http://example.com")
+
+        # Then
+        assert result is True
+
+    async def test_exists_by_url_false(self, repo, mock_session):
+        # Given
+        mock_result = MagicMock()
+        mock_result.scalar_one_or_none.return_value = None  # Simulate not found
+        mock_session.execute.return_value = mock_result
+
+        # When
+        result = await repo.exists_by_url("http://example.com")
+
+        # Then
+        assert result is False
+
+    async def test_exists_by_url_operational_error(self, repo, mock_session):
+        # Given
+        mock_session.execute.side_effect = OperationalError("stmt", {}, Exception())
+
+        # When / Then
+        with pytest.raises(DatabaseUnavailableError):
+            await repo.exists_by_url("http://example.com")

@@ -1,6 +1,6 @@
 import pytest
 
- 
+
 @pytest.fixture(autouse=True)
 async def clean_database(database_client):
     """

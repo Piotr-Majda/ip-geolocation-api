@@ -18,6 +18,10 @@ lint:
 	$(POETRY) run black --check app tests
 	$(POETRY) run mypy app tests
 
+format:
+	$(POETRY) run black app tests
+	$(POETRY) run isort app tests
+
 security-scan:
 	$(POETRY) run bandit -r app/ --exclude app/tests
 	$(POETRY) run safety scan $(SAFETY_KEY)
@@ -67,6 +71,21 @@ docker-down:
 	$(DOCKER_COMPOSE) down
 
 # Clean up commands
+
+ifeq ($(OS),Windows_NT)
+clean:
+	if exist .pytest_cache rmdir /s /q .pytest_cache
+	if exist .coverage del /f /q .coverage
+	if exist htmlcov del /f /q htmlcov
+	if exist coverage.xml del /f /q coverage.xml
+	if exist security-reports rmdir /s /q security-reports
+	for /d /r . %%d in (__pycache__) do @if exist "%%d" rd /s /q "%%d"
+	for /d /r . %%d in (*.egg-info) do @if exist "%%d" rd /s /q "%%d"
+	del /s /q *.pyc
+	del /s /q *.pyo
+	del /s /q *.pyd
+	del /s /q coverage-*.xml
+else
 clean:
 	rm -rf .pytest_cache
 	rm -rf .coverage
@@ -79,6 +98,7 @@ clean:
 	find . -type f -name "*.pyo" -delete
 	find . -type f -name "*.pyd" -delete
 	find . -type f -name "coverage-*.xml" -delete
+endif
 
 # migration commands
 migrate:

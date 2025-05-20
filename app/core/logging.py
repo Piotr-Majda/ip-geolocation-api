@@ -109,7 +109,8 @@ def get_logger(name: str, level: Optional[str] = None) -> logging.Logger:
 
     logger.addHandler(handler)
     logger.info(
-        f"Logger {name} initialized with level {level} and format {os.getenv('APP_LOG_FORMAT', 'json')}"
+        f"Logger {name} initialized with level {level} "
+        f"and format {os.getenv('APP_LOG_FORMAT', 'json')}"
     )
 
     # Don't propagate to root logger

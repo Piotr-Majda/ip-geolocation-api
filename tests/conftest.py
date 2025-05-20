@@ -16,6 +16,7 @@ from app.interfaces.api.routes.dependencies import get_database_client, get_ip_g
 # Import the FastAPI app
 from app.main import app
 
+
 # pytest options
 def pytest_addoption(parser):
     parser.addoption(
@@ -30,6 +31,7 @@ def pytest_addoption(parser):
         default=None,
         help="API key for IpStack service",
     )
+
 
 # Database client
 
@@ -59,12 +61,11 @@ async def database_client_down(database_client: DatabaseClient):
         yield database_client
     finally:
         database_client.connect()
-        
+
 
 @pytest.fixture
 async def populate_db_with_ip_geolocation_data(
-    database_client: DatabaseClient, 
-    ip_geolocation_data: Geolocation
+    database_client: DatabaseClient, ip_geolocation_data: Geolocation
 ):
     """
     Populate the database with IP geolocation data.
@@ -94,7 +95,9 @@ def ip_geolocation_data(request) -> Geolocation | None:
 
 
 @pytest.fixture
-def ip_geolocation_service(request, ip_geolocation_data: Geolocation | None) -> IpGeolocationService:
+def ip_geolocation_service(
+    request, ip_geolocation_data: Geolocation | None
+) -> IpGeolocationService:
     """
     IP geolocation service
     param: bool, if False, the service is unavailable, otherwise it is up
@@ -119,6 +122,7 @@ def ip_geolocation_service(request, ip_geolocation_data: Geolocation | None) -> 
             get_geolocation_by_ip=AsyncMock(return_value=ip_geolocation_data),
             get_geolocation_by_url=AsyncMock(return_value=ip_geolocation_data),
         )
+
 
 # Test client
 @pytest.fixture

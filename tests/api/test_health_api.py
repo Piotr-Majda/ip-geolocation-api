@@ -45,6 +45,7 @@ async def test_root_endpoint(test_client):
     assert "message" in data
     assert "Welcome" in data["message"]
 
+
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     "endpoint",

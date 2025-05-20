@@ -1,6 +1,7 @@
 from typing import Optional
 
 import httpx
+from pydantic import ValidationError
 
 from app.core.logging import get_logger
 from app.domain.models.ip_data import Geolocation
@@ -96,24 +97,17 @@ class IpStackGeolocationService(IpGeolocationService):
                             "postal_code": data.get("zip"),  # ipstack uses zip
                         }
 
-                        # Validate mapped data
-                        if not (
-                            isinstance(mapped_data["latitude"], (int, float))
-                            and isinstance(mapped_data["longitude"], (int, float))
-                        ):
-                            logger.warning(f"[IpStack] Invalid coordinate data: {mapped_data}")
-                            raise IpGeolocationServiceError("Invalid coordinate data in response")
-
                         logger.debug(f"[IpStack] Mapped data: {mapped_data}")
                         return Geolocation(**mapped_data)
-                    except ValueError as json_error:
+                    except ValidationError as json_error:
                         response_text = response.text
                         logger.error(f"[IpStack] Invalid JSON response: {response_text}")
                         raise IpGeolocationServiceError(f"Invalid JSON response: {json_error}")
                 else:
                     response_text = response.text
                     logger.warning(
-                        f"[IpStack] Failed to get IP data: {response.status_code}, body: {response_text}"
+                        f"[IpStack] Failed to get IP data: {response.status_code}, "
+                        f"body: {response_text}"
                     )
                     raise IpGeolocationServiceError(
                         f"Failed to get IP data: {response.status_code}"
@@ -134,7 +128,8 @@ class IpStackGeolocationService(IpGeolocationService):
         Raises:
             IpGeolocationServiceUnavailableError: If the external service is not available.
         Note:
-            ipstack returns error code 101 in response body if the API key is missing, which means the service is up.
+            ipstack returns error code 101 in response body if the
+            API key is missing, which means the service is up.
         """
         try:
             url = "https://api.ipstack.com/check"
@@ -155,11 +150,13 @@ class IpStackGeolocationService(IpGeolocationService):
                         return False
                 else:
                     logger.warning(
-                        f"[IpStack Health] Service returned unexpected status code: {response.status_code}"
+                        f"[IpStack Health] Service returned unexpected status code: "
+                        f"{response.status_code}"
                     )
                     return False
         except Exception as e:
             logger.error(
-                f"[IpStack Health] Failed to check if the service is available: \n{e} \nassuming service is unavailable"
+                f"[IpStack Health] Failed to check if the service is available: "
+                f"\n{e} \nassuming service is unavailable"
             )
             return False

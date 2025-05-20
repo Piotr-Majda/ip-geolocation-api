@@ -1,7 +1,8 @@
 import traceback
-from typing import List, Optional, Tuple
+from typing import Optional
 
-from sqlalchemy import delete, select, update
+from pydantic import ValidationError
+from sqlalchemy import delete, select
 from sqlalchemy.exc import IntegrityError, OperationalError
 
 from app.core.logging import get_logger
@@ -41,18 +42,21 @@ class IpGeolocationRepositoryImpl(IpGeolocationRepository):
                 await session.refresh(db_obj)
                 return Geolocation.model_validate(db_obj, from_attributes=True)
 
+            except (ValidationError, ValueError) as e:
+                logger.error(f"Validation error: {e}")
+                raise
             except OperationalError as e:
                 await session.rollback()
                 logger.error(f"Operational error adding: \n{e}")
-                raise DatabaseUnavailableError(f"Database error") from e
+                raise DatabaseUnavailableError("Database error") from e
             except IntegrityError as e:
                 await session.rollback()
                 logger.error(f"Integrity error adding: \n{e}")
-                raise DatabaseUnavailableError(f"Database integrity error") from e
+                raise DatabaseUnavailableError("Database integrity error") from e
             except Exception as e:
                 await session.rollback()
                 logger.error(f"Unexpected error adding: \n{traceback.format_exc()}")
-                raise DatabaseUnavailableError(f"Unexpected database error") from e
+                raise DatabaseUnavailableError("Unexpected database error") from e
 
     async def update(self, ip_data: Geolocation) -> Geolocation:
         """
@@ -84,19 +88,21 @@ class IpGeolocationRepositoryImpl(IpGeolocationRepository):
                 await session.commit()
                 await session.refresh(existing)
                 return Geolocation.model_validate(existing, from_attributes=True)
-
+            except ValueError as e:
+                logger.error(f"{e}")
+                raise
             except OperationalError as e:
                 await session.rollback()
                 logger.error(f"Operational error updating: \n{e}")
-                raise DatabaseUnavailableError(f"Database error") from e
+                raise DatabaseUnavailableError("Database error") from e
             except IntegrityError as e:
                 await session.rollback()
                 logger.error(f"Integrity error updating: \n{e}")
-                raise DatabaseUnavailableError(f"Database integrity error") from e
+                raise DatabaseUnavailableError("Database integrity error") from e
             except Exception as e:
                 await session.rollback()
                 logger.error(f"Unexpected error updating: \n{traceback.format_exc()}")
-                raise DatabaseUnavailableError(f"Unexpected database error") from e
+                raise DatabaseUnavailableError("Unexpected database error") from e
 
     async def exists_by_ip(self, ip: str) -> bool:
         """
@@ -114,7 +120,7 @@ class IpGeolocationRepositoryImpl(IpGeolocationRepository):
                 return result.scalar_one_or_none() is not None
             except OperationalError as e:
                 logger.error(f"Operational error checking existence: \n{e}")
-                raise DatabaseUnavailableError(f"Database error") from e
+                raise DatabaseUnavailableError("Database error") from e
 
     async def exists_by_url(self, url: str) -> bool:
         """
@@ -134,7 +140,7 @@ class IpGeolocationRepositoryImpl(IpGeolocationRepository):
                 return result.scalar_one_or_none() is not None
             except OperationalError as e:
                 logger.error(f"Operational error checking existence: \n{e}")
-                raise DatabaseUnavailableError(f"Database error") from e
+                raise DatabaseUnavailableError("Database error") from e
 
     async def get_by_ip(self, ip: str) -> Optional[Geolocation]:
         """
@@ -155,7 +161,7 @@ class IpGeolocationRepositoryImpl(IpGeolocationRepository):
                 return Geolocation.model_validate(data, from_attributes=True)
             except OperationalError as e:
                 logger.error(f"Operational error getting by ip: \n{e}")
-                raise DatabaseUnavailableError(f"Database error") from e
+                raise DatabaseUnavailableError("Database error") from e
 
     async def get_by_url(self, url: str) -> Optional[Geolocation]:
         """
@@ -178,7 +184,7 @@ class IpGeolocationRepositoryImpl(IpGeolocationRepository):
                 return Geolocation.model_validate(data, from_attributes=True)
             except OperationalError as e:
                 logger.error(f"Operational error getting by url: \n{e}")
-                raise DatabaseUnavailableError(f"Database error") from e
+                raise DatabaseUnavailableError("Database error") from e
 
     async def delete_by_ip(self, ip: str) -> bool:
         """
@@ -198,7 +204,7 @@ class IpGeolocationRepositoryImpl(IpGeolocationRepository):
             except OperationalError as e:
                 await session.rollback()
                 logger.error(f"Operational error deleting by ip: \n{e}")
-                raise DatabaseUnavailableError(f"Database error") from e
+                raise DatabaseUnavailableError("Database error") from e
 
     async def delete_by_url(self, url: str) -> bool:
         """
@@ -220,14 +226,15 @@ class IpGeolocationRepositoryImpl(IpGeolocationRepository):
             except OperationalError as e:
                 await session.rollback()
                 logger.error(f"Operational error deleting by url: \n{e}")
-                raise DatabaseUnavailableError(f"Database error") from e
+                raise DatabaseUnavailableError("Database error") from e
 
     async def is_available(self) -> bool:
         """
         Check if the repository is available.
 
         Returns:
-            True if the database is available, False if an operational error occurs or an unexpected error occurs.
+            True if the database is available,
+            False if an operational error occurs or an unexpected error occurs.
         """
         async with self.database_client.get_session() as session:
             try:

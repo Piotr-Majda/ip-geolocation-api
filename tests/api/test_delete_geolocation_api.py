@@ -3,11 +3,11 @@ API tests for geolocation endpoints to verify the application is running correct
 """
 
 import pytest
-
-from app.domain.models.ip_data import IpGeolocationData
+from datetime import datetime
+from app.domain.models.ip_data import Geolocation
 
 test_data = [
-    IpGeolocationData(
+    Geolocation(
         ip="127.0.0.1",
         url="https://www.google.com/",
         latitude=123.456,
@@ -17,6 +17,8 @@ test_data = [
         country="Test Country",
         continent="Test Continent",
         postal_code="12345",
+        created_at=datetime.now(),
+        updated_at=datetime.now(),
     )
 ]
 

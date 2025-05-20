@@ -7,7 +7,7 @@ from sqlalchemy.orm import declarative_base
 Base = declarative_base()
 
 
-class BaseModel(Base):
+class BaseModel(Base):  # type: ignore[misc,valid-type]
     __abstract__ = True
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     created_at = Column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(UTC))

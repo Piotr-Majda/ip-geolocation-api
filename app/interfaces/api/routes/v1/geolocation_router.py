@@ -42,7 +42,8 @@ async def add_geolocation(
 
     Args:
         request (GeolocationRequest): IP address or URL to add/update geolocation
-        geolocation_application_service (Annotated[GeolocationApplicationService, Depends]): Geolocation application service
+        geolocation_application_service
+            (Annotated[GeolocationApplicationService, Depends]): Geolocation application service
 
     Raises:
         HTTPException: Internal server error
@@ -53,9 +54,7 @@ async def add_geolocation(
     """
     try:
         if request.ip_address is not None:
-            geolocation = await geolocation_application_service.add_ip_data(
-                str(request.ip_address)
-            )
+            geolocation = await geolocation_application_service.add_ip_data(str(request.ip_address))
         else:
             geolocation = await geolocation_application_service.add_url_data(str(request.url))
         return {
@@ -97,7 +96,8 @@ async def delete_geolocation(
     Args:
         ip_address: IP address to delete geolocation
         url: URL to delete geolocation
-        geolocation_application_service (Annotated[GeolocationApplicationService, Depends]): Geolocation application service
+        geolocation_application_service
+            (Annotated[GeolocationApplicationService, Depends]): Geolocation application service
 
     Raises:
         HTTPException: Internal server error
@@ -146,7 +146,8 @@ async def get_geolocation(
     Args:
         ip_address: IP address to get geolocation
         url: URL to get geolocation
-        geolocation_application_service (Annotated[GeolocationApplicationService, Depends]): Geolocation application service
+        geolocation_application_service
+            (Annotated[GeolocationApplicationService, Depends]): Geolocation application service
 
     Raises:
         HTTPException: Internal server error

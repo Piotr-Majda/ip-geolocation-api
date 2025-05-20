@@ -19,7 +19,9 @@ async def get_database_client() -> AsyncGenerator[DatabaseClient, None]:
         await db.close()
 
 
-def get_ip_geolocation_repository(database_client: DatabaseClient = Depends(get_database_client)) -> IpGeolocationRepository:
+def get_ip_geolocation_repository(
+    database_client: DatabaseClient = Depends(get_database_client),
+) -> IpGeolocationRepository:
     return IpGeolocationRepositoryImpl(database_client=database_client)
 
 
@@ -28,10 +30,9 @@ def get_ip_geolocation_service() -> IpGeolocationService:
 
 
 def get_geolocation_application_service(
-    ip_geolocation_repository: IpGeolocationRepository = Depends(get_ip_geolocation_repository), 
-    ip_geolocation_service: IpGeolocationService = Depends(get_ip_geolocation_service)
-    ) -> GeolocationApplicationService:
+    ip_geolocation_repository: IpGeolocationRepository = Depends(get_ip_geolocation_repository),
+    ip_geolocation_service: IpGeolocationService = Depends(get_ip_geolocation_service),
+) -> GeolocationApplicationService:
     return GeolocationApplicationService(
-        repository=ip_geolocation_repository,
-        external_service=ip_geolocation_service
+        repository=ip_geolocation_repository, external_service=ip_geolocation_service
     )

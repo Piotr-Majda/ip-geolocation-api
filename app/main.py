@@ -11,9 +11,13 @@ from fastapi.responses import JSONResponse
 from app.core.config import settings
 from app.domain.repositories import IpGeolocationRepository
 from app.domain.services import IpGeolocationService
-from app.interfaces.api.routes.dependencies import get_ip_geolocation_service, get_ip_geolocation_repository
+from app.interfaces.api.routes.dependencies import (
+    get_ip_geolocation_service,
+    get_ip_geolocation_repository,
+)
 from app.middleware import add_logging_middleware
 from app.interfaces.api.routes.v1.geolocation_router import router as geolocation_router
+
 # Load environment variables
 load_dotenv()
 
@@ -28,7 +32,7 @@ app = FastAPI(
 )
 
 # Add logging middleware
-add_logging_middleware(app) 
+add_logging_middleware(app)
 
 # Configure CORS
 app.add_middleware(
@@ -43,11 +47,14 @@ app.add_middleware(
 # Include routers - to be expanded
 app.include_router(geolocation_router, prefix=f"/api/{settings.VERSION}")
 
+
 # Health check endpointget_ip_geolocation_service
 @app.get("/health", tags=["Monitoring"])
 async def health_check(
     ip_geolocation_service: Annotated[IpGeolocationService, Depends(get_ip_geolocation_service)],
-    ip_geolocation_repository: Annotated[IpGeolocationRepository, Depends(get_ip_geolocation_repository)],
+    ip_geolocation_repository: Annotated[
+        IpGeolocationRepository, Depends(get_ip_geolocation_repository)
+    ],
 ):
     """
     Check the health of the API and its dependencies.
@@ -59,9 +66,9 @@ async def health_check(
     return {
         "status": "ok",
         "components": {
-            "api": {'status': 'ok'},
+            "api": {"status": "ok"},
             "database": {"status": database_status},
-            "external_api": {'status': external_api_status},
+            "external_api": {"status": external_api_status},
         },
     }
 
@@ -74,7 +81,12 @@ async def root():
     """
     Root endpoint, redirects to docs.
     """
-    return {"message": ("Welcome to IP Geolocation API. " f"See /api/{settings.VERSION}/docs for documentation.")}
+    return {
+        "message": (
+            "Welcome to IP Geolocation API. " f"See /api/{settings.VERSION}/docs for documentation."
+        )
+    }
+
 
 # Unified error handling for HTTP exceptions
 @app.exception_handler(HTTPException)
