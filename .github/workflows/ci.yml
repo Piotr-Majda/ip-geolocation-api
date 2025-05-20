@@ -49,7 +49,7 @@ jobs:
         env:
           SAFETY_API_KEY: ${{ secrets.SAFETY_API_KEY }}
         run: |
-          poetry run safety scan -o text --key $SAFETY_API_KEY
+          poetry run safety scan -o text --key $SAFETY_API_KEY --ci
 
       - name: Check for outdated dependencies
         run: |
