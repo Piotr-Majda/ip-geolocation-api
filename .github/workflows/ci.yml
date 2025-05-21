@@ -8,7 +8,7 @@ on:
 
 jobs:
   lint:
-    name: Lint & Static Analysis
+    name: Lint
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -26,10 +26,34 @@ jobs:
           virtualenvs-in-project: true
 
       - name: Install dependencies
-        run: poetry install --with dev
+        run: |
+          poetry install --with dev
 
-      - name: Run lint, format, type-check, and security scan
-        run: make lint-all
+      - name: Lint with flake8
+        run: |
+          poetry run flake8 app tests
+
+      - name: Format check with black
+        run: |
+          poetry run black --check app tests
+
+      - name: Check type hints with mypy
+        run: |
+          poetry run mypy app tests
+
+      - name: Security scan with bandit
+        run: |
+          poetry run bandit -r app/ --exclude app/tests -ll -ii
+
+      - name: Security scan with safety
+        env:
+          SAFETY_API_KEY: ${{ secrets.SAFETY_API_KEY }}
+        run: |
+          poetry run safety scan -o text --key $SAFETY_API_KEY --ci
+
+      - name: Check for outdated dependencies
+        run: |
+          poetry show --outdated
 
   coverage:
     name: Tests & Coverage
