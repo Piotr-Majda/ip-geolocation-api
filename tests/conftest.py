@@ -7,6 +7,7 @@ from unittest.mock import AsyncMock, MagicMock
 import httpx
 import pytest
 from sqlalchemy import delete
+
 from app.domain.models.ip_data import Geolocation
 from app.domain.services import IpGeolocationService, IpGeolocationServiceError
 from app.infrastructure.database import DatabaseClient

@@ -44,14 +44,9 @@ integration-real-api-test:
 api-test:
 	$(POETRY) run pytest tests/api
 
-coverage:
-	$(POETRY) run pytest tests/unit --cov=app --cov-report=xml:coverage-unit.xml
-	$(POETRY) run pytest tests/api --cov=app --cov-report=xml:coverage-api.xml
-	$(POETRY) run pytest tests/integration --cov=app --cov-report=xml:coverage-integration.xml
-	$(POETRY) run coverage combine coverage-*.xml
+test-coverage:
+	$(POETRY) run pytest tests --cov=app --cov-report=xml --cov-report=html
 	$(POETRY) run coverage report
-	$(POETRY) run coverage xml
-	$(POETRY) run coverage html
 
 # Security report generation
 security-report:
@@ -118,3 +113,39 @@ seed-docker:
 migrate-seed-docker: migrate-docker seed-docker
 
 migrate-seed: migrate seed
+
+IP ?= 192.168.1.1
+URL ?= https://www.google.com
+LIMIT ?= 5
+
+# select data from database
+select-data-limit:
+	$(DOCKER_COMPOSE) exec db psql -U postgres -d geolocation -c "SELECT * FROM ip_geolocation LIMIT $(LIMIT);"
+
+select-data-all:
+	$(DOCKER_COMPOSE) exec db psql -U postgres -d geolocation -c "SELECT * FROM ip_geolocation;"
+
+select-data-count:
+	$(DOCKER_COMPOSE) exec db psql -U postgres -d geolocation -c "SELECT COUNT(*) FROM ip_geolocation;"
+
+select-data-ip:
+	$(DOCKER_COMPOSE) exec db psql -U postgres -d geolocation -c "SELECT * FROM ip_geolocation WHERE ip = '$(IP)';"
+
+# curl commands
+curl-get-ip:
+	$(DOCKER_COMPOSE) exec api curl -X GET "http://localhost:8000/api/v1/geolocation/?ip_address=$(IP)"
+
+curl-get-url:
+	$(DOCKER_COMPOSE) exec api curl -X GET "http://localhost:8000/api/v1/geolocation/?url=$(URL)"
+
+curl-add-ip:
+	$(DOCKER_COMPOSE) exec api curl -X POST "http://localhost:8000/api/v1/geolocation/" -H "Content-Type: application/json" -d '{"ip_address": "$(IP)"}'
+
+curl-add-url:
+	$(DOCKER_COMPOSE) exec api curl -X POST "http://localhost:8000/api/v1/geolocation/" -H "Content-Type: application/json" -d '{"url": "$(URL)"}'
+
+curl-delete-ip:
+	$(DOCKER_COMPOSE) exec api curl -X DELETE "http://localhost:8000/api/v1/geolocation/?ip_address=$(IP)"
+
+curl-delete-url:
+	$(DOCKER_COMPOSE) exec api curl -X DELETE "http://localhost:8000/api/v1/geolocation/?url=$(URL)"

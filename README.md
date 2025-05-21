@@ -147,7 +147,7 @@ make integration-test # Run integration tests
 **With Poetry:**
 
 ```bash
-poetry run pytest             # Run all tests
+poetry run pytest tests       # Run all tests
 poetry run pytest tests/api   # Run API tests
 poetry run pytest tests/unit  # Run unit tests
 poetry run pytest tests/integration # Run integration tests
@@ -168,63 +168,78 @@ To quickly populate the database with sample geolocation data for manual testing
 **With Makefile:**
 
 ```bash
-make populate-test-data
+make migrate-seed-docker  # Run migrations and seed the database inside Docker
 ```
 
-**With Poetry:**
+**Or, separately:**
 
 ```bash
-poetry run python scripts/populate_test_data.py
+make migrate-docker      # Run migrations inside Docker
+make  seed-docker         # Seed the database inside Docker
+```
+
+**With Poetry (local development):**
+
+```bash
+make migrate-seed        # Run migrations and seed the database locally
+# or separately
+make migrate             # Run migrations locally
+make seed                # Seed the database locally
 ```
 
 This will insert sample geolocation records into your database so you can immediately interact with the API.
 
-## Troubleshooting
+## Validating Seed Data and API
 
-### Database Connection Issues
+After seeding, you can use Makefile targets to validate the data in your database and test the API endpoints.
 
-- Verify database credentials in `.env` file
-- Check if database container is running: `docker-compose ps`
-- Check database logs: `docker-compose logs db`
-- The application implements retry mechanisms for temporary database outages
+### Select Data from the Database
 
-### IPStack API Issues
+- **Show a sample of records:**
+  ```bash
+  make select-data-limit LIMIT=5
+  ```
+- **Show all records:**
+  ```bash
+  make select-data-all
+  ```
+- **Count records:**
+  ```bash
+  make select-data-count
+  ```
+- **Select by IP:**
+  ```bash
+  make select-data-ip IP=1.2.3.4
+  ```
 
-- Verify your API key is valid and has sufficient quota
-- The application caches previously fetched data to reduce API calls
-- Check network connectivity to IPStack servers
-- The application will serve cached data when IPStack is unavailable
+### Test API Endpoints with curl
 
-### API Error Codes
+- **GET geolocation by IP:**
+  ```bash
+  make curl-get-ip IP=1.2.3.4
+  ```
+- **GET geolocation by URL:**
+  ```bash
+  make curl-get-url URL=https://www.google.com
+  ```
+- **POST (add) geolocation by IP:**
+  ```bash
+  make curl-add-ip IP=1.2.3.4
+  ```
+- **POST (add) geolocation by URL:**
+  ```bash
+  make curl-add-url URL=https://www.google.com
+  ```
+- **DELETE geolocation by IP:**
+  ```bash
+  make curl-delete-ip IP=1.2.3.4
+  ```
+- **DELETE geolocation by URL:**
+  ```bash
+  make curl-delete-url URL=https://www.google.com
+  ```
 
-- `400` - Invalid input (malformed IP/URL)
-- `404` - Geolocation data not found
-- `429` - Rate limit exceeded for IPStack API
-- `500` - Internal server error
-- `503` - External service unavailable
-
-## Development
-
-1. Install dependencies locally:
-
-```bash
-make setup
-# or
-poetry install
-```
-
-2. Run in development mode:
-
-```bash
-poetry run uvicorn app.main:app --reload
-```
-
-3. Build for production:
-
-```bash
-make docker-build
-make docker-up
-```
+These commands allow you to quickly verify that your database is populated and your API is functioning as expected.
 
 ## License
 

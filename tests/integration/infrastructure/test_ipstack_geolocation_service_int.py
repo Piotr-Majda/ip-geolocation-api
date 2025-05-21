@@ -42,7 +42,7 @@ async def test_get_geolocation_by_ip(ipstack_service: IpStackGeolocationService)
 @pytest.mark.asyncio
 async def test_get_geolocation_by_url(ipstack_service: IpStackGeolocationService):
     """Test geolocation lookup with URL."""
-    result = await ipstack_service.get_geolocation_by_url("google.com")
+    result = await ipstack_service.get_geolocation_by_url("www.google.com")
     assert result is not None, "Result should not be None"
     assert result.ip is not None
     assert result.country is not None

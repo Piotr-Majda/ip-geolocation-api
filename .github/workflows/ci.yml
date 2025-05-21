@@ -8,7 +8,7 @@ on:
 
 jobs:
   lint:
-    name: Lint
+    name: Lint & Static Analysis
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -26,37 +26,13 @@ jobs:
           virtualenvs-in-project: true
 
       - name: Install dependencies
-        run: |
-          poetry install --with dev
+        run: poetry install --with dev
 
-      - name: Lint with flake8
-        run: |
-          poetry run flake8 app tests
+      - name: Run lint, format, type-check, and security scan
+        run: make lint-all
 
-      - name: Format check with black
-        run: |
-          poetry run black --check app tests
-
-      - name: Check type hints with mypy
-        run: |
-          poetry run mypy app tests
-
-      - name: Security scan with bandit
-        run: |
-          poetry run bandit -r app/ --exclude app/tests -ll -ii
-
-      - name: Security scan with safety
-        env:
-          SAFETY_API_KEY: ${{ secrets.SAFETY_API_KEY }}
-        run: |
-          poetry run safety scan -o text --key $SAFETY_API_KEY --ci
-
-      - name: Check for outdated dependencies
-        run: |
-          poetry show --outdated
-
-  unit-tests:
-    name: Unit Tests
+  coverage:
+    name: Tests & Coverage
     runs-on: ubuntu-latest
     needs: lint
     steps:
@@ -75,48 +51,19 @@ jobs:
           virtualenvs-in-project: true
 
       - name: Install dependencies
-        run: |
-          poetry install
+        run: poetry install
 
-      - name: Run unit tests
-        run: |
-          poetry run pytest tests/unit -v --cov=app --cov-report=xml:coverage-unit.xml
+      - name: Run tests and generate coverage via Makefile
+        run: make test-coverage
 
-      - name: Upload coverage report
+      - name: Upload XML coverage report
         uses: actions/upload-artifact@v4
         with:
-          name: coverage-unit
-          path: coverage-unit.xml
+          name: coverage-xml
+          path: coverage.xml
 
-  api-tests:
-    name: API Tests
-    runs-on: ubuntu-latest
-    needs: lint
-    steps:
-      - uses: actions/checkout@v3
-
-      - name: Set up Python 3.13
-        uses: actions/setup-python@v4
-        with:
-          python-version: "3.13"
-
-      - name: Install Poetry
-        uses: snok/install-poetry@v1
-        with:
-          version: 1.7.1
-          virtualenvs-create: true
-          virtualenvs-in-project: true
-
-      - name: Install dependencies
-        run: |
-          poetry install
-
-      - name: Run API tests
-        run: |
-          poetry run pytest tests/api -v --cov=app --cov-report=xml:coverage-api.xml
-
-      - name: Upload coverage report
+      - name: Upload HTML coverage report
         uses: actions/upload-artifact@v4
         with:
-          name: coverage-api
-          path: coverage-api.xml
+          name: coverage-html
+          path: htmlcov/

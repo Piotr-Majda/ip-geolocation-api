@@ -12,11 +12,11 @@ from app.core.config import settings
 from app.domain.repositories import IpGeolocationRepository
 from app.domain.services import IpGeolocationService
 from app.interfaces.api.routes.dependencies import (
-    get_ip_geolocation_service,
     get_ip_geolocation_repository,
+    get_ip_geolocation_service,
 )
-from app.middleware import add_logging_middleware
 from app.interfaces.api.routes.v1.geolocation_router import router as geolocation_router
+from app.middleware import add_logging_middleware
 
 # Load environment variables
 load_dotenv()

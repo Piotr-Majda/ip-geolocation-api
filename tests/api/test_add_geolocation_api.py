@@ -2,14 +2,17 @@
 API tests for geolocation endpoints to verify the application is running correctly.
 """
 
-import pytest
 from datetime import datetime
+
+import pytest
+
 from app.domain.models.ip_data import Geolocation
+from app.interfaces.api.routes.v1.geolocation_router import domain_validator
 
 test_data = [
     Geolocation(
         ip="127.0.0.1",
-        url="https://www.google.com/",
+        url=domain_validator("www.google.com"),
         latitude=123.456,
         longitude=78.910,
         city="Test City",
@@ -127,7 +130,7 @@ async def test_add_geolocation_by_url_success(test_client_v1, ip_geolocation_dat
     """
     Verify that the /geolocation/url endpoint returns a 201 status code and correct data.
     """
-    response = await test_client_v1.post("/geolocation/", json={"url": "https://www.google.com/"})
+    response = await test_client_v1.post("/geolocation/", json={"url": "www.google.com"})
     assert response.status_code == 201, f"Response: {response.json()}"
     response_data = response.json()
     assert response_data["status"] == "success"

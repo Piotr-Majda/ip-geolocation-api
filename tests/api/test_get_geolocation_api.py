@@ -2,14 +2,17 @@
 API tests for geolocation endpoints to verify the application is running correctly.
 """
 
-import pytest
 from datetime import datetime
+
+import pytest
+
 from app.domain.models.ip_data import Geolocation
+from app.interfaces.api.routes.v1.geolocation_router import domain_validator
 
 test_data = [
     Geolocation(
         ip="127.0.0.1",
-        url="https://www.google.com/",
+        url=domain_validator("www.google.com"),
         latitude=123.456,
         longitude=78.910,
         city="Test City",
@@ -67,7 +70,7 @@ async def test_get_geolocation_by_url_not_found(test_client_v1):
     """
     Should return 404 if URL not found.
     """
-    response = await test_client_v1.get("/geolocation/", params={"url": "https://notfound.com"})
+    response = await test_client_v1.get("/geolocation/", params={"url": "www.notfound.com"})
     assert response.status_code == 404
 
 
@@ -77,7 +80,7 @@ async def test_get_geolocation_by_ip_and_url_422(test_client_v1):
     Should return 422 if both ip_address and url are provided.
     """
     response = await test_client_v1.get(
-        "/geolocation/", params={"ip_address": "127.0.0.1", "url": "https://www.google.com/"}
+        "/geolocation/", params={"ip_address": "127.0.0.1", "url": "www.google.com"}
     )
     assert response.status_code == 422
 
@@ -106,6 +109,15 @@ async def test_get_geolocation_by_url_invalid_input(test_client_v1):
     Should return 422 if url is invalid.
     """
     response = await test_client_v1.get("/geolocation/", params={"url": "not-a-url"})
+    assert response.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_get_geolocation_by_url_invalid_input_without_suffix_on_domain(test_client_v1):
+    """
+    Should return 422 if url is invalid.
+    """
+    response = await test_client_v1.get("/geolocation/", params={"url": "http://www.ap"})
     assert response.status_code == 422
 
 

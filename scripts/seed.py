@@ -21,6 +21,7 @@ async def main():
         async with db.get_session() as session:
             # generate random data
             try:
+                entires = []
                 for _ in range(100):
                     entry = IpGeolocation(
                         ip=random_ip(), 
@@ -31,11 +32,14 @@ async def main():
                         region=random.choice(regions),
                         country=random.choice(countries),
                         continent=random.choice(continents),
-                        postal_code=random.randint(10000, 99999),
+                        postal_code=str(random.randint(10000, 99999)),
                     )
-                session.add(entry)
+                    entires.append(entry)
+                    
+                session.add_all(entires)
                 await session.commit()
             except Exception as e:
+                print(e)
                 await session.rollback()
     finally:
         await db.close()

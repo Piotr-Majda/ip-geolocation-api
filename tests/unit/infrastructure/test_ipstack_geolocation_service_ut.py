@@ -82,12 +82,11 @@ class TestIpStackGeolocationService:
         mock_response.json.return_value = ip_data_missing_fields
         mock_get.return_value = mock_response
 
-        # When/Then
-        with pytest.raises(
-            IpGeolocationServiceError,
-            match=re.compile(r"Invalid response: missing required fields.*"),
-        ):
-            await service.get_geolocation_by_ip("1.1.1.1")
+        # When
+        result = await service.get_geolocation_by_ip("1.1.1.1")
+
+        # Then
+        assert result is None
 
     @patch("httpx.AsyncClient.get")
     async def test_get_geolocation_by_ip_field_validation_error(

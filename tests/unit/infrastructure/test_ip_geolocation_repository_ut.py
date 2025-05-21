@@ -55,7 +55,7 @@ class TestIpGeolocationRepositoryImpl:
     def ip_data(self):
         return Geolocation(
             ip="1.1.1.1",
-            url="http://example.com",
+            url="www.example.com",
             city="Sydney",
             country="Australia",
             latitude=1.1,
@@ -69,7 +69,7 @@ class TestIpGeolocationRepositoryImpl:
     def ip_data_with_invalid_ip(self):
         return Geolocation(
             ip="1.1.1.1",
-            url="http://example.com",
+            url="www.example.com",
             city="Sydney",
             country="Australia",
             latitude=1.1,

@@ -28,6 +28,7 @@ services:
       - ./pytest.ini:/app/pytest.ini
       - ./alembic.ini:/app/alembic.ini
       - ./migrations:/app/migrations
+      - ./scripts:/app/scripts
     env_file:
       - .env
     ports:

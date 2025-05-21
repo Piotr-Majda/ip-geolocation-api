@@ -1,13 +1,14 @@
 from typing import AsyncGenerator
+
 from fastapi import Depends
 
-from app.infrastructure.database import DatabaseClient
 from app.application.geolocation_service import GeolocationApplicationService
+from app.core.config import settings
 from app.domain.repositories import IpGeolocationRepository
 from app.domain.services import IpGeolocationService
-from app.core.config import settings
-from app.infrastructure.ipstack_geolocation_service import IpStackGeolocationService
+from app.infrastructure.database import DatabaseClient
 from app.infrastructure.ip_geolocation_repository import IpGeolocationRepositoryImpl
+from app.infrastructure.ipstack_geolocation_service import IpStackGeolocationService
 
 
 async def get_database_client() -> AsyncGenerator[DatabaseClient, None]:

@@ -1,8 +1,17 @@
 import traceback
 from typing import Annotated, Optional
+from urllib.parse import urlparse
 
+import tldextract
 from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import AnyUrl, BaseModel, IPvAnyAddress, model_validator
+from pydantic import (
+    AfterValidator,
+    BaseModel,
+    Field,
+    IPvAnyAddress,
+    WithJsonSchema,
+    model_validator,
+)
 
 from app.application.geolocation_service import (
     GeolocationApplicationService,
@@ -16,9 +25,51 @@ from app.interfaces.api.routes.dependencies import get_geolocation_application_s
 router = APIRouter(prefix="/geolocation", tags=["Geolocation"])
 
 
+def domain_validator(value: str) -> str:
+    if not isinstance(value, str):
+        raise TypeError("Domain must be a string")
+    # Extract domain if URL
+    if value.startswith("http://") or value.startswith("https://"):
+        parsed = urlparse(value)
+        host = parsed.hostname
+    else:
+        host = value.split(":")[0]
+    if not host:
+        raise ValueError(f"Invalid domain: host is empty for {value}")
+    ext = tldextract.extract(host)
+    # ext.domain and ext.suffix must both be non-empty for a valid domain
+    if not ext.domain or not ext.suffix:
+        raise ValueError(f"Invalid domain: {host} is not a valid domain for {value}")
+    registered_domain = f"{ext.domain}.{ext.suffix}"
+    return registered_domain
+
+
+DomainStr = Annotated[
+    str,
+    AfterValidator(domain_validator),
+    WithJsonSchema(
+        {
+            "type": "string",
+            "format": "domain",
+            "examples": ["www.example.com"],
+            "description": "A domain name (e.g., www.example.com) or "
+            "a URL from which a domain can be extracted.",
+        }
+    ),
+]
+
+
 class GeolocationRequest(BaseModel):
-    ip_address: Optional[IPvAnyAddress] = None
-    url: Optional[AnyUrl] = None
+    url: Optional[DomainStr] = Field(
+        None,
+        description="Please provide a valid domain name (e.g., www.example.com) or "
+        "a URL from which a domain can be extracted.",
+    )
+    ip_address: Optional[IPvAnyAddress] = Field(
+        None,
+        description="IP address ipv4 or ipv6",
+        examples=["127.0.0.1", "::1"],
+    )
 
     @model_validator(mode="after")
     def validate_request(self):
@@ -88,7 +139,7 @@ async def delete_geolocation(
         GeolocationApplicationService, Depends(get_geolocation_application_service)
     ],
     ip_address: Optional[IPvAnyAddress] = None,
-    url: Optional[AnyUrl] = None,
+    url: Optional[DomainStr] = None,
 ):
     """
     Delete geolocation by IP address or URL
@@ -138,7 +189,7 @@ async def get_geolocation(
         GeolocationApplicationService, Depends(get_geolocation_application_service)
     ],
     ip_address: Optional[IPvAnyAddress] = None,
-    url: Optional[AnyUrl] = None,
+    url: Optional[DomainStr] = None,
 ):
     """
     Get geolocation by IP address or URL not both

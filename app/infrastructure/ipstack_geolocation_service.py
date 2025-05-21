@@ -80,10 +80,11 @@ class IpStackGeolocationService(IpGeolocationService):
                         required_fields = ["ip", "latitude", "longitude"]
                         missing_fields = [field for field in required_fields if not data.get(field)]
                         if missing_fields:
-                            logger.warning(f"[IpStack] Missing required fields: {missing_fields}")
-                            raise IpGeolocationServiceError(
-                                f"Invalid response: missing required fields {missing_fields}"
+                            logger.warning(
+                                f"[IpStack] Missing required fields: {missing_fields} in {data} "
+                                f"geolocation data not found for {url}"
                             )
+                            return None
 
                         # Map ipstack fields to our model fields
                         mapped_data = {
