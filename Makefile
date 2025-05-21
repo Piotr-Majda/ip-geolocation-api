@@ -24,7 +24,7 @@ format:
 
 security-scan:
 	$(POETRY) run bandit -r app/ --exclude app/tests
-	$(POETRY) run safety scan $(SAFETY_KEY)
+	$(POETRY) run safety scan $(SAFETY_KEY) --ci
 
 lint-all: lint security-scan
 
