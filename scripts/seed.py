@@ -9,7 +9,7 @@ cities = ["Mountain View", "San Francisco", "Los Angeles", "San Diego", "San Jos
 regions = ["California", "Texas", "New York", "Florida", "Illinois", "Texas", "New York", "Florida", "Illinois", "Texas"]
 countries = ["United States", "Canada", "Mexico", "Brazil", "Argentina", "Chile", "Peru", "Venezuela", "Colombia", "Ecuador"]
 continents = ["North America", "South America", "Europe", "Asia", "Africa", "Australia", "Antarctica"]
-urls = ["https://wp.com/", "https://wordpress.com/", "https://asp.net/", "https://tv.com/", "https://wix.com/", "https://squarespace.com/", "https://shopify.com/", "https://bigcartel.com/", "https://tumblr.com/", "https://blogger.com/"]
+urls = ["wp.com", "wordpress.com", "asp.net", "tv.com", "wix.com", "squarespace.com", "shopify.com", "bigcartel.com", "tumblr.com", "blogger.com"]
 
 def random_ip():
     return ".".join(str(random.randint(0, 255)) for _ in range(4))

@@ -65,6 +65,9 @@ docker-up:
 docker-down:
 	$(DOCKER_COMPOSE) down
 
+docker-down-fresh:
+	$(DOCKER_COMPOSE) down -v --remove-orphans --rmi all
+
 # Clean up commands
 
 ifeq ($(OS),Windows_NT)

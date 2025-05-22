@@ -123,4 +123,6 @@ async def test_delete_geolocation_by_ip_address_database_down(
     )
     response_data = response.json()
     assert response.status_code == 503, f"Response: {response_data}"
-    assert response_data["error"]["message"] == "Database unavailable", f"Response: {response_data}"
+    assert (
+        response_data["error"]["message"] == "Database unavailable, please try again later"
+    ), f"Response: {response_data}"

@@ -17,15 +17,16 @@ This directory contains all test suites for the project. Use this README as the 
 
 ## Testing Approach
 
-- **Isolation:** External services are mocked, and database integration tests use an in-memory SQLite database for fast, isolated runs
+- **Isolation:** External services are mocked
 - **Integration with Real API** Some integration tests require access to the real external API and are skipped by default. To run these tests, use the --use-real-api flag
+- **Internal Dependencies** In test integratrion and api test use real instance of Postgress database you need to run docker-compose to connect with this db, before runing these tests
 - **Repeatability:** The database is reset between tests to ensure clean state.
 - **Coverage:** Both positive and negative scenarios are tested, including error and edge cases.
 - **Fixtures:** Common test fixtures are used for setup and teardown.
 
 ## Running Tests
 
-Use the Makefile from the project root to run tests
+Use the Makefile from the project root to run tests, for anythinkg higher then unit test run docker-compose to setup database
 Default coverage report on terminal will be displayed
 
 ```bash

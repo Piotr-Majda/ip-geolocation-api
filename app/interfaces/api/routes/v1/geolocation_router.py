@@ -4,6 +4,7 @@ from urllib.parse import urlparse
 
 import tldextract
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import JSONResponse
 from pydantic import (
     AfterValidator,
     BaseModel,
@@ -18,6 +19,7 @@ from app.application.geolocation_service import (
     NotFoundGeolocationData,
 )
 from app.core.logging import api_logger
+from app.domain.repositories import ConflictOnUpsertInDatabase, UpsertResult
 from app.domain.services import IpGeolocationServiceError
 from app.infrastructure.database import DatabaseUnavailableError
 from app.interfaces.api.routes.dependencies import get_geolocation_application_service
@@ -80,7 +82,7 @@ class GeolocationRequest(BaseModel):
         return self
 
 
-@router.post("/", status_code=status.HTTP_201_CREATED)
+@router.post("/")
 async def add_geolocation(
     request: GeolocationRequest,
     geolocation_application_service: Annotated[
@@ -105,32 +107,44 @@ async def add_geolocation(
     """
     try:
         if request.ip_address is not None:
-            geolocation = await geolocation_application_service.add_ip_data(str(request.ip_address))
+            geolocation, action = await geolocation_application_service.add_ip_data(
+                str(request.ip_address)
+            )
         else:
-            geolocation = await geolocation_application_service.add_url_data(str(request.url))
-        return {
-            "status": "success",
-            "data": {"geolocation": geolocation.model_dump()},
-        }
+            geolocation, action = await geolocation_application_service.add_url_data(
+                str(request.url)
+            )
+        status_code = (
+            status.HTTP_201_CREATED if action == UpsertResult.CREATED else status.HTTP_200_OK
+        )
+        return JSONResponse(
+            status_code=status_code,
+            content={
+                "status": "success",
+                "data": {"geolocation": geolocation.model_dump(mode="json")},
+            },
+        )
 
     except DatabaseUnavailableError as e:
         api_logger.error(f"Database unavailable: \n{traceback.format_exc()}")
         raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Database unavailable"
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Database unavailable, please try again later",
         )
     except IpGeolocationServiceError as e:
         api_logger.error(f"External service unavailable: \n{traceback.format_exc()}")
         raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="External unavailable"
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="External service unavailable, please try again later",
         )
     except NotFoundGeolocationData as e:
         api_logger.error(f"IP data not found: \n{traceback.format_exc()}")
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="IP data not found on external service"
         )
-    except Exception as e:
-        api_logger.error(f"Error adding/updating geolocation: \n{traceback.format_exc()}")
-        raise e
+    except ConflictOnUpsertInDatabase as e:
+        api_logger.error(f"Conflict on upsert: \n{traceback.format_exc()}")
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Conflict on upsert")
 
 
 @router.delete("/")
@@ -170,11 +184,9 @@ async def delete_geolocation(
     except DatabaseUnavailableError as e:
         api_logger.error(f"Database unavailable: \n{traceback.format_exc()}")
         raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Database unavailable"
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Database unavailable, please try again later",
         )
-    except Exception as e:
-        api_logger.error(f"Error deleting geolocation: \n{traceback.format_exc()}")
-        raise e
     if result:
         return {"status": "success", "data": {"ip_address": ip_address, "url": url}}
     else:
@@ -220,11 +232,9 @@ async def get_geolocation(
     except DatabaseUnavailableError as e:
         api_logger.error(f"Database unavailable: \n{traceback.format_exc()}")
         raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Database unavailable"
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Database unavailable, please try again later",
         )
-    except Exception as e:
-        api_logger.error(f"Error getting geolocation: \n{traceback.format_exc()}")
-        raise e
     if data is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Geolocation data not found"

@@ -51,6 +51,30 @@ async def test_add_geolocation_by_ip_address_success(test_client_v1, ip_geolocat
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("ip_geolocation_data", test_data, indirect=True)
+async def test_add_geolocation_by_ip_address_already_exists(
+    test_client_v1, populate_db_with_ip_geolocation_data, ip_geolocation_data
+):
+    """
+    Verify that the /geolocation endpoint returns a 200 status code and reports 'ok' status.
+    """
+    response = await test_client_v1.post(
+        "/geolocation/", json={"ip_address": ip_geolocation_data.ip}
+    )
+    assert response.status_code == 200, f"Response: {response.json()}"
+    response_data = response.json()
+    assert response_data["status"] == "success"
+    assert response_data["data"]["geolocation"]["ip"] == ip_geolocation_data.ip
+    assert response_data["data"]["geolocation"]["latitude"] == ip_geolocation_data.latitude
+    assert response_data["data"]["geolocation"]["longitude"] == ip_geolocation_data.longitude
+    assert response_data["data"]["geolocation"]["city"] == ip_geolocation_data.city
+    assert response_data["data"]["geolocation"]["region"] == ip_geolocation_data.region
+    assert response_data["data"]["geolocation"]["country"] == ip_geolocation_data.country
+    assert response_data["data"]["geolocation"]["continent"] == ip_geolocation_data.continent
+    assert response_data["data"]["geolocation"]["postal_code"] == ip_geolocation_data.postal_code
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("ip_geolocation_data", test_data, indirect=True)
 async def test_add_geolocation_by_ip_address_database_down(
     test_client_v1, ip_geolocation_data, database_client_down
 ):
@@ -62,7 +86,9 @@ async def test_add_geolocation_by_ip_address_database_down(
     )
     response_data = response.json()
     assert response.status_code == 503, f"Response: {response_data}"
-    assert response_data["error"]["message"] == "Database unavailable", f"Response: {response_data}"
+    assert (
+        response_data["error"]["message"] == "Database unavailable, please try again later"
+    ), f"Response: {response_data}"
 
 
 @pytest.mark.asyncio
@@ -74,7 +100,9 @@ async def test_add_geolocation_by_ip_address_external_api_down(test_client_v1):
     response = await test_client_v1.post("/geolocation/", json={"ip_address": "127.0.0.1"})
     response_data = response.json()
     assert response.status_code == 503, f"Response: {response_data}"
-    assert response_data["error"]["message"] == "External unavailable", f"Response: {response_data}"
+    assert (
+        response_data["error"]["message"] == "External service unavailable, please try again later"
+    ), f"Response: {response_data}"
 
 
 @pytest.mark.asyncio

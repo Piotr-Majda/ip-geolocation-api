@@ -102,7 +102,13 @@ async def http_exception_handler(request, exc):
 async def global_exception_handler(request, exc):
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        content={"error": {"code": "INTERNAL_ERROR", "message": "An unexpected error occurred."}},
+        content={
+            "error": {
+                "code": 500,
+                "detail": f"name: {exc.__class__.__name__}, message: {str(exc)}",
+                "message": "An unexpected error occurred. Please try again later.",
+            }
+        },
     )
 
 

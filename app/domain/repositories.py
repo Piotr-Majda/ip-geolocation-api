@@ -1,13 +1,46 @@
 from abc import ABC, abstractmethod
+from enum import Enum
 from typing import Optional
 
 from app.domain.models.ip_data import Geolocation
+
+
+class RepositoryError(Exception):
+    """
+    Exception raised when an error occurs in the repository.
+    """
+
+    pass
+
+
+class ConflictOnUpsertInDatabase(RepositoryError):
+    """
+    Exception raised when a conflict occurs on an upsert operation in the database.
+    """
+
+    pass
+
+
+class UpsertResult(str, Enum):
+    """
+    Enum for upsert operation result.
+    """
+
+    CREATED = "created"
+    UPDATED = "updated"
 
 
 class IpGeolocationRepository(ABC):
     """
     Repository interface for IP geolocation data.
     """
+
+    @abstractmethod
+    async def upsert(self, ip_data: Geolocation) -> tuple[Geolocation, UpsertResult]:
+        """
+        Upsert IP geolocation data in the repository.
+        """
+        pass
 
     @abstractmethod
     async def add(self, ip_data: Geolocation) -> Geolocation:

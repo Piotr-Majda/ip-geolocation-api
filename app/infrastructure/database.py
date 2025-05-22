@@ -1,6 +1,10 @@
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
+from app.core.logging import get_logger
 from app.infrastructure.models import Base
+
+logger = get_logger(__name__)
 
 
 class DatabaseUnavailableError(Exception):
@@ -13,12 +17,29 @@ class DatabaseClient:
         self.engine = None
 
     def connect(self):
-        self.engine = create_async_engine(self.url, echo=False)
+        try:
+            logger.info(f"Connecting to database: {self.url}")
+            self.engine = create_async_engine(self.url, echo=False)
+        except OperationalError as e:
+            logger.error(f"Failed to connect to database: {e}")
+            raise DatabaseUnavailableError(f"Failed to connect to database: {e}") from e
+        except Exception as e:
+            logger.error(f"Failed to connect to database: {e}")
+            raise DatabaseUnavailableError(f"Failed to connect to database: {e}") from e
 
     async def close(self):
-        if self.engine:
-            await self.engine.dispose()
-            self.engine = None
+        try:
+            logger.info(f"Closing database: {self.url}")
+            if self.engine:
+                await self.engine.dispose()
+                self.engine = None
+            logger.info(f"Database closed: {self.url}")
+        except OperationalError as e:
+            logger.error(f"Failed to close database: {e}")
+            raise DatabaseUnavailableError(f"Failed to close database: {e}") from e
+        except Exception as e:
+            logger.error(f"Failed to close database: {e}")
+            raise DatabaseUnavailableError(f"Failed to close database: {e}") from e
 
     async def clean_tables(self):
         if self.engine is None:

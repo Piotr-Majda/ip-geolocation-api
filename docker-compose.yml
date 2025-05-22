@@ -7,11 +7,27 @@ services:
       - POSTGRES_DB=geolocation
     volumes:
       - db_data:/var/lib/postgresql/data
+      - ./scripts:/docker-entrypoint-initdb.d
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
       timeout: 5s
       retries: 5
+    ports:
+      - "5433:5432"
+
+  pgadmin:
+        image: dpage/pgadmin4:latest
+        environment:
+          PGADMIN_DEFAULT_EMAIL: "admin@example.com" # Change as needed
+          PGADMIN_DEFAULT_PASSWORD: "admin"         # Change as needed
+          PGADMIN_CONFIG_SERVER_MODE: "False"       # Run in desktop mode
+        ports:
+          - "5050:80" # Access pgAdmin on http://localhost:5050
+        depends_on:
+          - db
+        volumes:
+          - pgadmin_data:/var/lib/pgadmin
 
   api:
     build:
@@ -37,3 +53,4 @@ services:
 
 volumes:
   db_data:
+  pgadmin_data:

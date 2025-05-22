@@ -1,21 +1,23 @@
 from typing import AsyncGenerator
 
-from fastapi import Depends
+from fastapi import Depends, HTTPException, status
 
 from app.application.geolocation_service import GeolocationApplicationService
 from app.core.config import settings
 from app.domain.repositories import IpGeolocationRepository
 from app.domain.services import IpGeolocationService
-from app.infrastructure.database import DatabaseClient
+from app.infrastructure.database import DatabaseClient, DatabaseUnavailableError
 from app.infrastructure.ip_geolocation_repository import IpGeolocationRepositoryImpl
 from app.infrastructure.ipstack_geolocation_service import IpStackGeolocationService
 
 
 async def get_database_client() -> AsyncGenerator[DatabaseClient, None]:
     db = DatabaseClient(url=settings.DATABASE_URL)
-    db.connect()
     try:
+        db.connect()
         yield db
+    except DatabaseUnavailableError as e:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(e)) from e
     finally:
         await db.close()
 

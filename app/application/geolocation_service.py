@@ -2,8 +2,9 @@ from typing import Optional
 
 from app.core.logging import get_logger
 from app.domain.models.ip_data import Geolocation
-from app.domain.repositories import IpGeolocationRepository
+from app.domain.repositories import IpGeolocationRepository, UpsertResult
 from app.domain.services import IpGeolocationService
+from app.infrastructure.database import DatabaseUnavailableError
 
 logger = get_logger(__name__)
 
@@ -65,7 +66,7 @@ class GeolocationApplicationService:
         logger.info(f"Got URL data for {url}")
         return result
 
-    async def add_ip_data(self, ip_address: str) -> Geolocation:
+    async def add_ip_data(self, ip_address: str) -> tuple[Geolocation, UpsertResult]:
         """
         Add or update geolocation data in the repository.
         If the IP already exists, update its data.
@@ -74,30 +75,24 @@ class GeolocationApplicationService:
             ip_address: The IP address to add or update
 
         Returns:
-            The geolocation data
+            The geolocation data and the action
 
         Raises:
             NotFoundGeolocationData: If the IP data is not found in external service
         """
         logger.info(f"Adding IP data for {ip_address}")
+        if not await self.repository.is_available():
+            raise DatabaseUnavailableError("Database is unavailable")
         ip_data = await self.external_service.get_geolocation_by_ip(ip_address)
         if ip_data is None:
             logger.error(f"IP data not found for {ip_address}")
             raise NotFoundGeolocationData("IP data not found")
 
-        # Check if record exists
-        if await self.repository.exists_by_ip(ip_address):
-            # Update existing record
-            updated_data = await self.repository.update(ip_data)
-            logger.info(f"Updated IP data for {ip_address}")
-            return updated_data
-        else:
-            # Add new record
-            added_data = await self.repository.add(ip_data)
-            logger.info(f"Added IP data for {ip_address}")
-            return added_data
+        ip_data, action = await self.repository.upsert(ip_data)
+        logger.info(f"Added IP data for {ip_address}")
+        return ip_data, action
 
-    async def add_url_data(self, url: str) -> Geolocation:
+    async def add_url_data(self, url: str) -> tuple[Geolocation, UpsertResult]:
         """
         Add or update geolocation data in the repository.
         If the URL already exists, update its data.
@@ -106,12 +101,14 @@ class GeolocationApplicationService:
             url: The URL to add or update
 
         Returns:
-            The geolocation data
+            The geolocation data and the action
 
         Raises:
             NotFoundGeolocationData: If the URL data is not found in external service
         """
         logger.info(f"Adding URL data for {url}")
+        if not await self.repository.is_available():
+            raise DatabaseUnavailableError("Database is unavailable")
         ip_data = await self.external_service.get_geolocation_by_url(url)
         if ip_data is None:
             logger.error(f"IP data not found for {url}")
@@ -119,17 +116,10 @@ class GeolocationApplicationService:
         if ip_data.url != url:
             ip_data.url = url
 
-        # Check if record exists
-        if await self.repository.exists_by_url(url):
-            # Update existing record
-            updated_data = await self.repository.update(ip_data)
-            logger.info(f"Updated URL data for {url}")
-            return updated_data
-        else:
-            # Add new record
-            added_data = await self.repository.add(ip_data)
-            logger.info(f"Added URL data for {url}")
-            return added_data
+        logger.info(f"IP data: {ip_data} for {url}")
+        ip_data, action = await self.repository.upsert(ip_data)
+        logger.info(f"Added IP data for {url}")
+        return ip_data, action
 
     async def delete_ip_data(self, ip: str) -> bool:
         """

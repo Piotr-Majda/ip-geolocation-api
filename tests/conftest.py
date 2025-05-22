@@ -42,7 +42,8 @@ async def database_client():
     """
     Database client that is up.
     """
-    test_database_url = "sqlite+aiosqlite:///:memory:"
+    # test_database_url = "sqlite+aiosqlite:///:memory:"
+    test_database_url = "postgresql+asyncpg://postgres:postgres@localhost:5433/geolocation-test"
     db_client = DatabaseClient(url=test_database_url)
     try:
         db_client.connect()

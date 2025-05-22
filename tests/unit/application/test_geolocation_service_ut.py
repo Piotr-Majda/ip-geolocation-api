@@ -8,6 +8,7 @@ from app.application.geolocation_service import (
     NotFoundGeolocationData,
 )
 from app.domain.models.ip_data import Geolocation
+from app.domain.repositories import UpsertResult
 
 
 @pytest.fixture
@@ -16,7 +17,8 @@ def repo():
 
 
 @pytest.fixture
-def service():
+def service(repo):
+    repo.is_available = AsyncMock(return_value=True)
     return MagicMock()
 
 
@@ -69,32 +71,32 @@ async def test_get_url_data_returns_data(app_service, repo, ip_data):
 async def test_add_ip_data_success(app_service, service, repo, ip_data):
     # Given
     service.get_geolocation_by_ip = AsyncMock(return_value=ip_data)
-    repo.add = AsyncMock(return_value=ip_data)
-    repo.exists_by_ip = AsyncMock(return_value=False)
+    repo.upsert = AsyncMock(return_value=(ip_data, UpsertResult.CREATED))
     # When
-    result = await app_service.add_ip_data("1.1.1.1")
+    result, action = await app_service.add_ip_data("1.1.1.1")
     # Then
     assert result == ip_data
+    assert action == UpsertResult.CREATED
     service.get_geolocation_by_ip.assert_awaited_once_with("1.1.1.1")
-    repo.add.assert_awaited_once_with(ip_data)
+    repo.upsert.assert_awaited_once_with(ip_data)
 
 
 @pytest.mark.asyncio
 async def test_add_ip_data_but_record_exists(app_service, service, repo, ip_data):
     # Given
     service.get_geolocation_by_ip = AsyncMock(return_value=ip_data)
-    repo.update = AsyncMock(return_value=ip_data)
-    repo.exists_by_ip = AsyncMock(return_value=True)
+    repo.upsert = AsyncMock(return_value=(ip_data, UpsertResult.UPDATED))
     # When
-    result = await app_service.add_ip_data("1.1.1.1")
+    result, action = await app_service.add_ip_data("1.1.1.1")
     # Then
     assert result == ip_data
+    assert action == UpsertResult.UPDATED
     service.get_geolocation_by_ip.assert_awaited_once_with("1.1.1.1")
-    repo.update.assert_awaited_once_with(ip_data)
+    repo.upsert.assert_awaited_once_with(ip_data)
 
 
 @pytest.mark.asyncio
-async def test_add_ip_data_not_found(app_service, service):
+async def test_add_ip_data_not_found(app_service, service, repo):
     # Given
     service.get_geolocation_by_ip = AsyncMock(return_value=None)
     # When/Then
@@ -107,28 +109,24 @@ async def test_add_ip_data_not_found(app_service, service):
 async def test_add_url_data_success(app_service, service, repo, ip_data):
     # Given
     service.get_geolocation_by_url = AsyncMock(return_value=ip_data)
-    repo.add = AsyncMock(return_value=ip_data)
-    repo.exists_by_url = AsyncMock(return_value=False)
+    repo.upsert = AsyncMock(return_value=(ip_data, UpsertResult.CREATED))
     # When
-    result = await app_service.add_url_data("www.example.com")
+    returned_geolocation, action = await app_service.add_url_data("www.example.com")
     # Then
-    assert result == ip_data
-    service.get_geolocation_by_url.assert_awaited_once_with("www.example.com")
-    repo.add.assert_awaited_once_with(ip_data)
+    assert returned_geolocation == ip_data
+    assert action == UpsertResult.CREATED
 
 
 @pytest.mark.asyncio
 async def test_add_url_data_but_record_exists(app_service, service, repo, ip_data):
     # Given
     service.get_geolocation_by_url = AsyncMock(return_value=ip_data)
-    repo.update = AsyncMock(return_value=ip_data)
-    repo.exists_by_url = AsyncMock(return_value=True)
+    repo.upsert = AsyncMock(return_value=(ip_data, UpsertResult.UPDATED))
     # When
-    result = await app_service.add_url_data("www.example.com")
+    returned_geolocation, action = await app_service.add_url_data("www.example.com")
     # Then
-    assert result == ip_data
-    service.get_geolocation_by_url.assert_awaited_once_with("www.example.com")
-    repo.update.assert_awaited_once_with(ip_data)
+    assert returned_geolocation == ip_data
+    assert action == UpsertResult.UPDATED
 
 
 @pytest.mark.asyncio
